@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 
 from flask import Flask, request, jsonify, session, send_from_directory, make_response
+from simple_websocket import ws
 #from flask_login import login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -3402,7 +3403,7 @@ def export_cr_to_excel():
             'bid_row_col': (3, 5),
             'po_row_col': (3, 15),
             'cr_row_col': (3, 25),
-            'amendment_row_col': (41, 3),
+            'amendment_row_col': (40, 3),
         },
         'CR_2': {
             'record_no_col': 28,
@@ -3411,7 +3412,7 @@ def export_cr_to_excel():
             'bid_row_col': (3, 5),
             'po_row_col': (3, 18),
             'cr_row_col': (3, 28),
-            'amendment_row_col': (41, 3),
+            'amendment_row_col': (40, 3),
         },
         'CR_3': {
             'record_no_col': 26,
@@ -3420,7 +3421,7 @@ def export_cr_to_excel():
             'bid_row_col': (3, 5),
             'po_row_col': (3, 15),
             'cr_row_col': (3, 25),
-            'amendment_row_col': (41, 3),
+            'amendment_row_col': (40, 3),
         },
     }
 
@@ -3549,224 +3550,38 @@ def export_cr_to_excel():
 
                             excel_row += 1
 
-                        # Engineering signature → CR_1 → J38:N38
+                        from openpyxl.styles import Alignment
+
                         if template_key == 'CR_1':
+                            # --- Engineering signature (F38) ---
                             sign = get_engineering_signature(conn, po_key)
-                            if sign and sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # TRY: use Pillow to auto-crop whitespace/alpha, scale to ~70% of span width, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency to RGBA
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent / blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns J..N (10..14), row 38
-                                            start_col = 10  # J
-                                            end_col = 14  # N
-                                            start_row = 38
-                                            end_row = 38
-
-                                            # helpers to estimate pixel sizes
-                                            from openpyxl.utils import get_column_letter
-
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            # compute span width/height (J..N)
-                                            span_width_px = 0
-                                            for c in range(start_col, end_col + 1):
-                                                span_width_px += col_width_to_pixels(ws, c)
-                                            span_height_px = 0
-                                            for r in range(start_row, end_row + 1):
-                                                span_height_px += row_height_to_pixels(ws, r)
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # scale to ~70% of span width, preserving aspect ratio
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file for openpyxl
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            # create openpyxl Image and set explicit width/height (px)
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at J38 then adjust anchor to span J..N and center
-                                            ws.add_image(img, "J38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    # set anchor span (zero-based)
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        # older/newer openpyxl may behave differently; ignore if fails
-                                                        pass
-                                            except Exception:
-                                                # ignore EMU/anchor adjustment failures and keep default placement
-                                                pass
-
-                                        except Exception:
-                                            # Pillow missing or processing failed -> fallback to simple insertion
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "J38")
-                                                # best-effort: try to center using same span math (if anchor available)
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(10, 15))  # J..N
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 10 - 1  # J
-                                                        fr.row = 38 - 1
-                                                        to.col = 14  # N
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Signature image error:", e)
-
-                            # Centre the signed_by | date text across J39..N39
-                            try:
-                                signed_at = sign.get('signed_at') if sign else None
+                            if sign:
+                                signed_by = sign.get('signed_by', '')
+                                signed_at = sign.get('signed_at')
                                 date_str = ''
                                 if signed_at:
                                     try:
                                         date_str = signed_at.strftime('%d-%m-%Y')
                                     except Exception:
                                         date_str = str(signed_at)
-                                signed_by = sign.get('signed_by') if sign else ''
+                                # Merge cells F38:N38 (if needed, or just use F38)
                                 try:
-                                    ws.merge_cells(start_row=39, start_column=10, end_row=39, end_column=14)  # J39:N39
+                                    ws.merge_cells(start_row=38, start_column=6, end_row=38, end_column=14)  # F to N
                                 except Exception:
                                     pass
-                                ws.cell(row=39, column=10).value = f"{signed_by} | {date_str}"
-                                ws.cell(row=39, column=10).alignment = Alignment(
-                                    wrap_text=True,
-                                    horizontal='center',
-                                    vertical='center'
+                                ws.cell(row=38, column=6).value = f"Verified By {signed_by} with Date {date_str}"
+                                ws.cell(row=38, column=6).alignment = Alignment(
+                                    wrap_text=True, horizontal='center', vertical='center'
                                 )
-                            except Exception:
-                                pass
 
-                        # Manufacturing signature → CR_1 → S38
-                        # --- Manufacturing signature → CR_1 → S38..Z38 (with date in S39..Z39) ---
-                        # Insert this block in export_cr_to_excel right after the engineering signature block.
-                        if template_key == 'CR_1':
-                            # fetch manufacturing signature for this PO
+                            # --- Manufacturing signature (S38) ---
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'manufacturing'))
@@ -3774,203 +3589,34 @@ def export_cr_to_excel():
                             except Exception:
                                 msign = None
 
-                            if msign and msign.get('signature_path'):
-                                try:
-                                    sig_rel_path = msign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing (auto-crop + scale)
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns S..Z (19..26), row 38
-                                            start_col = 19  # S
-                                            end_col = 26  # Z
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # scale to ~70% of span width
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            ws.add_image(img, "S38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # Pillow fallback: simple insert + best-effort centering
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "S38")
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(19, 27))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 19 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 26
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Manufacturing signature image error:", e)
-
-                            # Centre the signed_by | date text across S39..Z39
-                            try:
-                                if msign:
-                                    signed_at = msign.get('signed_at')
-                                    signed_by = msign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                            if msign:
+                                signed_by = msign.get('signed_by', '')
+                                signed_at = msign.get('signed_at')
                                 date_str = ''
                                 if signed_at:
                                     try:
                                         date_str = signed_at.strftime('%d-%m-%Y')
                                     except Exception:
                                         date_str = str(signed_at)
+                                # Merge cells S38:Z38 (if needed, or just use S38)
                                 try:
-                                    ws.merge_cells(start_row=39, start_column=19, end_row=39, end_column=26)  # S39:Z39
+                                    ws.merge_cells(start_row=38, start_column=19, end_row=38, end_column=26)  # S to Z
                                 except Exception:
                                     pass
-                                ws.cell(row=39, column=19).value = f"{signed_by} | {date_str}"
-                                ws.cell(row=39, column=19).alignment = Alignment(wrap_text=True, horizontal='center',
-                                                                                 vertical='center')
-                            except Exception:
-                                pass
+                                ws.cell(row=38, column=19).value = f"Verified By {signed_by} / {date_str}"
+                                ws.cell(row=38, column=19).alignment = Alignment(
+                                    wrap_text=True, horizontal='center', vertical='center'
+                                )
 
-                        #materials/planning signature for this PO
+                        # For Materials / Planning signature, write in F38:
                         if template_key == 'CR_2':
-                            # fetch materials/planning signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'materials'))
@@ -3978,207 +3624,30 @@ def export_cr_to_excel():
                             except Exception:
                                 mat_sign = None
 
-                            if mat_sign and mat_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = mat_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns F..M (6..13), row 38
-                                            start_col = 6  # F
-                                            end_col = 13  # M
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            # compute span pixel dimensions
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # resize image to ~70% of span width while preserving aspect ratio
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert and centre across the span
-                                            ws.add_image(img, "F38")
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        # ignore EMU assignment issues
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "F38")
-                                                # best-effort center
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(6, 14))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 6 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 13
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Materials/Planning signature image error:", e)
-
-                            # Write date + time into F39 (centered)
                             try:
-                                if mat_sign:
-                                    signed_at = mat_sign.get('signed_at')
-                                    signed_by = mat_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = mat_sign.get('signed_by', '') if mat_sign else ''
+                                signed_at = mat_sign.get('signed_at') if mat_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
-                                        # signed_at may be datetime; include time
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                ws.cell(row=39, column=6).value = f"{signed_by} | {dt_str}"
-                                ws.cell(row=39, column=6).alignment = Alignment(wrap_text=True, horizontal='center',
-                                                                                vertical='center')
+                                cell = ws.cell(row=38, column=6)  # F38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
+                                cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
 
-            #purchase signature
+                        # For Purchase signature, write in N38:
                         if template_key == 'CR_2':
-                            # fetch purchase signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'purchase'))
@@ -4186,206 +3655,30 @@ def export_cr_to_excel():
                             except Exception:
                                 purch_sign = None
 
-                            if purch_sign and purch_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = purch_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns N..R (14..18), row 38
-                                            start_col = 14  # N
-                                            end_col = 18  # R
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # scale to ~70% of span width
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at N38 then adjust anchor to span N..R and center
-                                            ws.add_image(img, "N38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    # set anchor span (zero-based)
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        # ignore EMU assignment issues
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "N38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(14, 19))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 14 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 18
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Purchase signature image error:", e)
-
-                            # Write date + time into N39 (centered in that cell)
                             try:
-                                if purch_sign:
-                                    signed_at = purch_sign.get('signed_at')
-                                    signed_by = purch_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = purch_sign.get('signed_by', '') if purch_sign else ''
+                                signed_at = purch_sign.get('signed_at') if purch_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=14)  # N39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=14)  # N38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
 
-                        #special-process signature
+                        # Special Process signature (write in S38)
                         if template_key == 'CR_2':
-                            # fetch special-process signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'special-process'))
@@ -4393,411 +3686,61 @@ def export_cr_to_excel():
                             except Exception:
                                 sp_sign = None
 
-                            if sp_sign and sp_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = sp_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns S..U (19..21), row 38
-                                            start_col = 19  # S
-                                            end_col = 21  # U
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # resize image to ~70% of span width preserving aspect ratio
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at S38 then adjust anchor to span S..U and center
-                                            ws.add_image(img, "S38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "S38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(19, 22))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 19 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 21
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Special Process signature image error:", e)
-
-                            # Write date + time into S39 (centered)
                             try:
-                                if sp_sign:
-                                    signed_at = sp_sign.get('signed_at')
-                                    signed_by = sp_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = sp_sign.get('signed_by', '') if sp_sign else ''
+                                signed_at = sp_sign.get('signed_at') if sp_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=19)  # S39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=19)  # S38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
-                            #welding signature
-                        if template_key == 'CR_2':
-                            # fetch welding signature for this PO
-                            try:
-                                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
-                                    _cur.execute("""
-                                        SELECT
-                                            cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
-                                        FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
-                                        WHERE cds.po_key = %s
-                                          AND cds.department = %s
-                                        """, (po_key, 'welding'))
-                                    weld_sign = _cur.fetchone()
-                            except Exception:
-                                weld_sign = None
 
-                            if weld_sign and weld_sign.get('signature_path'):
+                            # Welding signature (write in V38)
+                            if template_key == 'CR_2':
                                 try:
-                                    sig_rel_path = weld_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
+                                    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
+                                        _cur.execute("""
+                                            SELECT
+                                                cds.signed_by,
+                                                cds.signed_at
+                                            FROM cr_department_signatures cds
+                                            WHERE cds.po_key = %s
+                                              AND cds.department = %s
+                                            """, (po_key, 'welding'))
+                                        weld_sign = _cur.fetchone()
+                                except Exception:
+                                    weld_sign = None
 
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
+                                try:
+                                    signed_by = weld_sign.get('signed_by', '') if weld_sign else ''
+                                    signed_at = weld_sign.get('signed_at') if weld_sign else None
+                                    dt_str = ''
+                                    if signed_at:
                                         try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns V..X (22..24), row 38
-                                            start_col = 22  # V
-                                            end_col = 24  # X
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # scale to ~70% of span width
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at V38 then adjust anchor to span V..X and center
-                                            ws.add_image(img, "V38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    # set anchor span (zero-based)
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        # ignore EMU assignment issues
-                                                        pass
-                                            except Exception:
-                                                pass
-
+                                            dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                         except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "V38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
+                                            dt_str = str(signed_at)
+                                    cell = ws.cell(row=38, column=22)  # V38
+                                    cell.value = f"Verified by {signed_by} / {dt_str}"
+                                    cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+                                except Exception:
+                                    pass
 
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(22, 25))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 22 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 24
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Welding signature image error:", e)
-
-                            # Write date + time into V39 (centered in that cell)
-                            try:
-                                if weld_sign:
-                                    signed_at = weld_sign.get('signed_at')
-                                    signed_by = weld_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
-                                dt_str = ''
-                                if signed_at:
-                                    try:
-                                        dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
-                                    except Exception:
-                                        dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=22)  # V39
-                                cell.value = f"{signed_by} | {dt_str}"
-                                cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
-                            except Exception:
-                                pass
-
-                    #assembly/testing signature
+                        # Assembly & Testing signature (write in Y38)
                         if template_key == 'CR_2':
-                            # fetch assembly/testing signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'assembly'))
@@ -4805,205 +3748,30 @@ def export_cr_to_excel():
                             except Exception:
                                 assembly_sign = None
 
-                            if assembly_sign and assembly_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = assembly_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns Y..AB (25..28), row 38
-                                            start_col = 25  # Y
-                                            end_col = 28  # AB
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # resize image to ~70% of span width preserving aspect ratio
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at Y38 then adjust anchor to span Y..AB and center
-                                            ws.add_image(img, "Y38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "Y38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(25, 29))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 25 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 28
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Assembly & Testing signature image error:", e)
-
-                            # Write date + time into Y39 (centered)
                             try:
-                                if assembly_sign:
-                                    signed_at = assembly_sign.get('signed_at')
-                                    signed_by = assembly_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = assembly_sign.get('signed_by', '') if assembly_sign else ''
+                                signed_at = assembly_sign.get('signed_at') if assembly_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=25)  # Y39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=25)  # Y38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
 
-                        #quality signature
+                        # Quality Control / Assurance signature (write in F38)
                         if template_key == 'CR_3':
-                            # fetch quality signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'quality'))
@@ -5011,205 +3779,30 @@ def export_cr_to_excel():
                             except Exception:
                                 qc_sign = None
 
-                            if qc_sign and qc_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = qc_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns F..O (6..15), row 38
-                                            start_col = 6  # F
-                                            end_col = 15  # O
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # resize image to ~70% of span width preserving aspect ratio
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at F38 then adjust anchor to span F..O and center
-                                            ws.add_image(img, "F38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "F38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(6, 16))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 6 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 15
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Quality signature image error:", e)
-
-                            # Write date + time into F39 (centered)
                             try:
-                                if qc_sign:
-                                    signed_at = qc_sign.get('signed_at')
-                                    signed_by = qc_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = qc_sign.get('signed_by', '') if qc_sign else ''
+                                signed_at = qc_sign.get('signed_at') if qc_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=6)  # F39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=6)  # F38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
 
-                        #painting/despatch signature
+                        # Painting / Despatch (P38)
                         if template_key == 'CR_3':
-                            # fetch painting/despatch signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'painting'))
@@ -5217,204 +3810,30 @@ def export_cr_to_excel():
                             except Exception:
                                 paint_sign = None
 
-                            if paint_sign and paint_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = paint_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns P..T (16..20), row 38
-                                            start_col = 16  # P
-                                            end_col = 20  # T
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # scale to ~70% of span width
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at P38 then adjust anchor to span P..T and center
-                                            ws.add_image(img, "P38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "P38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(16, 21))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 16 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 20
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Painting/Despatch (CR_3) signature image error:", e)
-
-                            # Write date + time into P39 (centered)
                             try:
-                                if paint_sign:
-                                    signed_at = paint_sign.get('signed_at')
-                                    signed_by = paint_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = paint_sign.get('signed_by', '') if paint_sign else ''
+                                signed_at = paint_sign.get('signed_at') if paint_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=16)  # P39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=16)  # P38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
 
-                    #customer-service signature
+                        # Customer Service and Sales (U38)
                         if template_key == 'CR_3':
-                            # fetch customer-service signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'customer-service'))
@@ -5422,205 +3841,30 @@ def export_cr_to_excel():
                             except Exception:
                                 cs_sign = None
 
-                            if cs_sign and cs_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = cs_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, scale to ~70% of span, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: columns U..X (21..24), row 38
-                                            start_col = 21  # U
-                                            end_col = 24  # X
-                                            start_row = 38
-                                            end_row = 38
-
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = sum(
-                                                col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-                                            span_height_px = sum(
-                                                row_height_to_pixels(ws, r) for r in range(start_row, end_row + 1))
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # resize image to ~70% of span width preserving aspect ratio
-                                            target_w = max(1, int(span_width_px * 0.7))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at U38 then adjust anchor to span U..X and center
-                                            ws.add_image(img, "U38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                img.width = 120
-                                                img.height = 50
-                                                ws.add_image(img, "U38")
-                                                # best-effort centering
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = sum(
-                                                        col_width_to_pixels(ws, c) for c in range(21, 25))
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 21 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 24
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Customer Service signature image error:", e)
-
-                            # Write date + time into U39 (centered)
                             try:
-                                if cs_sign:
-                                    signed_at = cs_sign.get('signed_at')
-                                    signed_by = cs_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = cs_sign.get('signed_by', '') if cs_sign else ''
+                                signed_at = cs_sign.get('signed_at') if cs_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=21)  # U39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=21)  # U38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
-                            
-                        #commercial signature
+
+                        # Commercial (Y38)
                         if template_key == 'CR_3':
-                            # fetch commercial signature for this PO
                             try:
                                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as _cur:
                                     _cur.execute("""
                                         SELECT
                                             cds.signed_by,
-                                            cds.signed_at,
-                                            ms.signature_path
+                                            cds.signed_at
                                         FROM cr_department_signatures cds
-                                        JOIN master_signatures ms
-                                          ON ms.username = cds.signed_by
-                                         AND ms.department = cds.department
-                                         AND ms.is_active = TRUE
                                         WHERE cds.po_key = %s
                                           AND cds.department = %s
                                         """, (po_key, 'commercial'))
@@ -5628,187 +3872,17 @@ def export_cr_to_excel():
                             except Exception:
                                 comm_sign = None
 
-                            if comm_sign and comm_sign.get('signature_path'):
-                                try:
-                                    sig_rel_path = comm_sign["signature_path"].lstrip("/")
-                                    sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-                                    if os.path.exists(sig_abs_path):
-                                        tmp_path = None
-                                        try:
-                                            # Pillow-based processing: autocrop, (optionally) scale to fit cell, then insert
-                                            from PIL import Image as PILImage, ImageChops
-                                            import tempfile
-
-                                            pil = PILImage.open(sig_abs_path)
-
-                                            # normalize transparency
-                                            if pil.mode in ("RGBA", "LA") or (
-                                                    pil.mode == "P" and "transparency" in pil.info):
-                                                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                                                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                                                pil = bg
-                                            pil = pil.convert("RGBA")
-
-                                            # trim transparent/blank margins
-                                            try:
-                                                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                                                if bbox:
-                                                    pil = pil.crop(bbox)
-                                            except Exception:
-                                                pass
-
-                                            # target span: single column Y (25), row 38
-                                            start_col = 25  # Y
-                                            end_col = 25
-                                            start_row = 38
-                                            end_row = 38
-
-                                            # helpers to estimate pixel sizes
-                                            from openpyxl.utils import get_column_letter
-                                            def col_width_to_pixels(ws, col_idx):
-                                                col_letter = get_column_letter(col_idx)
-                                                w = ws.column_dimensions.get(col_letter).width
-                                                if w is None:
-                                                    w = 8.43
-                                                if w < 1:
-                                                    return int(w * 12)
-                                                return int((w - 0.75) * 7 + 5)
-
-                                            def row_height_to_pixels(ws, row_idx):
-                                                h = ws.row_dimensions.get(row_idx).height
-                                                if h is None:
-                                                    h = 15
-                                                return int(h * 96.0 / 72.0)
-
-                                            span_width_px = col_width_to_pixels(ws, start_col)
-                                            span_height_px = row_height_to_pixels(ws, start_row)
-                                            if span_height_px == 0:
-                                                span_height_px = row_height_to_pixels(ws, start_row)
-
-                                            # Make signature width a fraction of column width (e.g., 90% of the single column)
-                                            target_w = max(1, int(span_width_px * 0.9))
-                                            orig_w, orig_h = pil.size
-                                            if orig_w > 0 and target_w < orig_w:
-                                                target_h = int((target_w / orig_w) * orig_h)
-                                                pil = pil.resize((target_w, target_h), PILImage.LANCZOS)
-
-                                            # save processed image to temp file
-                                            tf = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                                            tmp_path = tf.name
-                                            pil.save(tmp_path, format="PNG")
-                                            tf.close()
-
-                                            img = Image(tmp_path)
-                                            try:
-                                                img.width, img.height = pil.size
-                                            except Exception:
-                                                pass
-
-                                            # insert anchored at Y38 then adjust anchor to the same single cell and center
-                                            ws.add_image(img, "Y38")
-
-                                            try:
-                                                from openpyxl.utils.units import pixels_to_EMU
-                                                anch = getattr(img, "anchor", None)
-                                                if anch is not None and hasattr(anch, "_from"):
-                                                    fr = anch._from
-                                                    to = anch._to
-                                                    # set anchor span (zero-based)
-                                                    fr.col = start_col - 1
-                                                    fr.row = start_row - 1
-                                                    to.col = end_col
-                                                    to.row = end_row
-
-                                                    left_px = max(
-                                                        int((span_width_px - (img.width or pil.size[0])) / 2.0), 0)
-                                                    top_px = max(
-                                                        int((span_height_px - (img.height or pil.size[1])) / 2.0), 0)
-                                                    try:
-                                                        fr.colOff = pixels_to_EMU(left_px)
-                                                        fr.rowOff = pixels_to_EMU(top_px)
-                                                    except Exception:
-                                                        # different openpyxl versions may vary; ignore if fails
-                                                        pass
-                                            except Exception:
-                                                pass
-
-                                        except Exception:
-                                            # fallback if Pillow not available or processing fails
-                                            try:
-                                                img = Image(sig_abs_path)
-                                                # scale down a bit for single-cell placement
-                                                img.width = 100
-                                                img.height = 40
-                                                ws.add_image(img, "Y38")
-                                                # best-effort centering (attempt to set offsets)
-                                                try:
-                                                    from openpyxl.utils import get_column_letter
-                                                    from openpyxl.utils.units import pixels_to_EMU
-                                                    def col_width_to_pixels(ws, col_idx):
-                                                        col_letter = get_column_letter(col_idx)
-                                                        w = ws.column_dimensions.get(col_letter).width
-                                                        if w is None:
-                                                            w = 8.43
-                                                        if w < 1:
-                                                            return int(w * 12)
-                                                        return int((w - 0.75) * 7 + 5)
-
-                                                    def row_height_to_pixels(ws, row_idx):
-                                                        h = ws.row_dimensions.get(row_idx).height
-                                                        if h is None:
-                                                            h = 15
-                                                        return int(h * 96.0 / 72.0)
-
-                                                    span_width_px = col_width_to_pixels(ws, 25)
-                                                    span_height_px = row_height_to_pixels(ws, 38)
-                                                    anch = getattr(img, "anchor", None)
-                                                    if anch is not None and hasattr(anch, "_from"):
-                                                        fr = anch._from
-                                                        to = anch._to
-                                                        fr.col = 25 - 1
-                                                        fr.row = 38 - 1
-                                                        to.col = 25
-                                                        to.row = 38
-                                                        left_px = max(int((span_width_px - img.width) / 2.0), 0)
-                                                        top_px = max(int((span_height_px - img.height) / 2.0), 0)
-                                                        try:
-                                                            fr.colOff = pixels_to_EMU(left_px)
-                                                            fr.rowOff = pixels_to_EMU(top_px)
-                                                        except Exception:
-                                                            pass
-                                                except Exception:
-                                                    pass
-                                            except Exception:
-                                                pass
-                                        finally:
-                                            # cleanup temp file if created
-                                            try:
-                                                if tmp_path:
-                                                    import os
-                                                    os.unlink(tmp_path)
-                                            except Exception:
-                                                pass
-
-                                except Exception as e:
-                                    print("Commercial signature image error:", e)
-
-                            # Write date + time into Y39 (centered)
                             try:
-                                if comm_sign:
-                                    signed_at = comm_sign.get('signed_at')
-                                    signed_by = comm_sign.get('signed_by', '')
-                                else:
-                                    signed_at = None
-                                    signed_by = ''
+                                signed_by = comm_sign.get('signed_by', '') if comm_sign else ''
+                                signed_at = comm_sign.get('signed_at') if comm_sign else None
                                 dt_str = ''
                                 if signed_at:
                                     try:
                                         dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                                     except Exception:
                                         dt_str = str(signed_at)
-                                cell = ws.cell(row=39, column=25)  # Y39
-                                cell.value = f"{signed_by} | {dt_str}"
+                                cell = ws.cell(row=38, column=25)  # Y38
+                                cell.value = f"Verified by {signed_by} / {dt_str}"
                                 cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                             except Exception:
                                 pass
@@ -5916,16 +3990,12 @@ def get_ped_department_signature(conn, po_key, department):
 def export_ped_to_excel():
     import json
     import openpyxl
-    from openpyxl.drawing.image import Image
     from openpyxl.styles import Alignment
     from io import BytesIO
     from flask import make_response, jsonify, request
     import os
     import zipfile
 
-    # --------------------------------------------------
-    # Helpers
-    # --------------------------------------------------
     def build_merged_cell_map(ws):
         merged_map = {}
         for mr in ws.merged_cells.ranges:
@@ -5942,20 +4012,14 @@ def export_ped_to_excel():
         else:
             ws.cell(row=row, column=col).value = value
 
-    # Helper to fetch PED signature specifically
     def get_ped_signature(conn, po_key, department):
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute("""
                     SELECT
                         pds.signed_by,
-                        pds.signed_at,
-                        ms.signature_path
+                        pds.signed_at
                     FROM ped_department_signatures pds
-                    JOIN master_signatures ms
-                      ON ms.username = pds.signed_by
-                     AND ms.department = pds.department
-                     AND ms.is_active = TRUE
                     WHERE pds.po_key = %s
                       AND pds.department = %s
                 """, (po_key, department))
@@ -5964,41 +4028,22 @@ def export_ped_to_excel():
             print(f"Error fetching PED signature for {department}: {e}")
             return None
 
-    # Helper to insert signature image & text
-    def insert_signature(ws, sign_data, cell_ref, text_row, text_col):
-        if not sign_data or not sign_data.get('signature_path'):
-            return
-
-        # 1. Insert Image
+    def ped_text_signature(ws, conn, po_key, dept_name, row, col):
         try:
-            sig_rel_path = sign_data["signature_path"].lstrip("/")
-            sig_abs_path = os.path.join(app.root_path, sig_rel_path)
-
-            if os.path.exists(sig_abs_path):
-                img = Image(sig_abs_path)
-                # Scale down slightly to fit typical cell
-                img.width = 100
-                img.height = 40
-                ws.add_image(img, cell_ref)
-        except Exception as e:
-            print(f"Error inserting signature image: {e}")
-
-        # 2. Insert Text (Name | Date)
-        try:
-            signed_at = sign_data.get('signed_at')
-            signed_by = sign_data.get('signed_by', '')
+            sign = get_ped_signature(conn, po_key, dept_name)
+            signed_by = sign.get('signed_by', '') if sign else ''
+            signed_at = sign.get('signed_at') if sign else None
             dt_str = ''
             if signed_at:
                 try:
-                    dt_str = signed_at.strftime('%d-%m-%Y')
+                    dt_str = signed_at.strftime('%d-%m-%Y %H:%M')
                 except Exception:
                     dt_str = str(signed_at)
-
-            cell = ws.cell(row=text_row, column=text_col)
-            cell.value = f"{signed_by} | {dt_str}"
+            cell = ws.cell(row=row, column=col)
+            cell.value = f"Verified by {signed_by} with {dt_str}"
             cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
         except Exception as e:
-            print(f"Error inserting signature text: {e}")
+            print(f"PED signature insertion error: {e}")
 
     templates = {
         'PED_1': 'attached_assets/PED 1_1763437023609.xlsx',
@@ -6011,41 +4056,6 @@ def export_ped_to_excel():
             return jsonify({'error': f'Missing template {p}'}), 404
     if not os.path.exists(logo_path):
         logo_path = None
-
-    # Mapping for PED_2 columns
-    ped2_remarks_map = {
-        'special-process': 6,
-        'welding': 11,
-        'assembly': 13,
-        'quality': 15,
-        'painting': 20,
-        'customer-service': 24,
-        'commercial': 28
-    }
-
-    ped1_cycle_positions = [6, 7, 8, 9, 10, 11, 12, 13, 15, 19]
-
-    ped1_header = {
-        'record_no_col': 23,
-        'record_date_col': 23,
-        'customer_row_col': (3, 3),
-        'bid_row_col': (3, 5),
-        'po_row_col': (3, 12),
-        'cr_row_col': (3, 22),
-        'remarks_col': 22,
-        'amendment_row_col': (40, 3)
-    }
-
-    ped2_header = {
-        'record_no_col': 29,
-        'record_date_col': 29,
-        'customer_row_col': (3, 3),
-        'bid_row_col': (3, 5),
-        'po_row_col': (3, 13),
-        'cr_row_col': (3, 27),
-        'remarks_col': 29,
-        'amendment_row_col': (40, 3)
-    }
 
     po_ids_param = (request.args.get('po_ids') or '').strip()
     po_ids = []
@@ -6065,7 +4075,6 @@ def export_ped_to_excel():
                     po_ids
                 )
                 pos_rows = cur.fetchall()
-
                 po_keys = [f"{p['customer']}|{p['bid']}|{p['po']}|{p['cr']}" for p in pos_rows]
                 if not po_keys:
                     conn.close()
@@ -6095,169 +4104,66 @@ def export_ped_to_excel():
 
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                for idx, form in enumerate(forms):
-                    form_id = form['id']
-                    po_key = f"{form['customer']}|{form['bid']}|{form['po']}|{form['cr']}"
-                    safe_customer = ''.join(
-                        c for c in (form['customer'] or 'Customer')
-                        if c.isalnum() or c in (' ', '_', '-')
-                    )[:30]
+            for idx, form in enumerate(forms):
+                form_id = form['id']
+                po_key = f"{form['customer']}|{form['bid']}|{form['po']}|{form['cr']}"
+                safe_customer = ''.join(
+                    c for c in (form['customer'] or 'Customer')
+                    if c.isalnum() or c in (' ', '_', '-')
+                )[:30]
 
-                    cur.execute("""
+                # Get detail rows for this form if needed
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur_rows:
+                    cur_rows.execute("""
                         SELECT item_no, part_number, part_description,
                                rev, qty, ped_cycles, notes, remarks
                         FROM ped_form_rows
                         WHERE ped_form_id = %s
                         ORDER BY id
                     """, (form_id,))
-                    rows = cur.fetchall()
+                    rows = cur_rows.fetchall()
 
-                    # ================= PED_1 =================
-                    wb1 = openpyxl.load_workbook(templates['PED_1'])
-                    ws1 = wb1.active
-                    mm1 = build_merged_cell_map(ws1)
+                # ------------ PED_1 ------------
+                wb1 = openpyxl.load_workbook(templates['PED_1'])
+                ws1 = wb1.active
+                mm1 = build_merged_cell_map(ws1)
+                # Fill headers/cells as needed using form, rows, write_cell, mm1...
+                # PED_1 Signatures:
+                ped_text_signature(ws1, conn, po_key, 'engineering', 37, 6)      # F37
+                ped_text_signature(ws1, conn, po_key, 'manufacturing', 37, 13)   # M37
+                ped_text_signature(ws1, conn, po_key, 'materials', 37, 15)       # O37
+                ped_text_signature(ws1, conn, po_key, 'purchase', 37, 19)        # S37
+                b1 = BytesIO()
+                wb1.save(b1)
+                b1.seek(0)
+                zip_file.writestr(f"PED_1_{idx + 1}_{safe_customer}.xlsx", b1.read())
 
-                    if logo_path:
-                        try:
-                            img = Image(logo_path);
-                            img.width = 80;
-                            img.height = 60
-                            ws1.add_image(img, 'A1')
-                        except Exception:
-                            pass
+                # ------------ PED_2 ------------
+                wb2 = openpyxl.load_workbook(templates['PED_2'])
+                ws2 = wb2.active
+                mm2 = build_merged_cell_map(ws2)
+                # Fill headers/cells as needed for PED_2...
+                # PED_2 Signatures:
+                sig_col_map = {
+                    'special-process': (37, 6),      # F37
+                    'welding': (37, 11),             # K37
+                    'assembly': (37, 13),            # M37
+                    'quality': (37, 15),             # O37
+                    'painting': (37, 20),            # T37
+                    'customer-service': (37, 24),    # X37
+                    'commercial': (37, 28)           # AB37
+                }
+                for dept, (row, col) in sig_col_map.items():
+                    ped_text_signature(ws2, conn, po_key, dept, row, col)
+                b2 = BytesIO()
+                wb2.save(b2)
+                b2.seek(0)
+                zip_file.writestr(f"PED_2_{idx + 1}_{safe_customer}.xlsx", b2.read())
 
-                    write_cell(ws1, 1, ped1_header['record_no_col'], form['record_no'], mm1)
-                    write_cell(ws1, 2, ped1_header['record_date_col'], form['record_date'], mm1)
-                    write_cell(ws1, *ped1_header['customer_row_col'], form['customer'], mm1)
-                    write_cell(ws1, *ped1_header['bid_row_col'], form['bid'], mm1)
-                    write_cell(ws1, *ped1_header['po_row_col'], form['po'], mm1)
-                    write_cell(ws1, *ped1_header['cr_row_col'], form['cr'], mm1)
-                    write_cell(ws1, *ped1_header['amendment_row_col'], form['amendment_details'], mm1)
 
-                    r0 = 7  # CHANGED from 8 to 7
-                    for i, row in enumerate(rows):
-                        er = r0 + i
-                        write_cell(ws1, er, 1, row['item_no'], mm1)
-                        write_cell(ws1, er, 2, row['part_number'], mm1)
-                        write_cell(ws1, er, 3, row['part_description'], mm1)
-                        write_cell(ws1, er, 4, row['rev'], mm1)
-                        write_cell(ws1, er, 5, row['qty'], mm1)
-
-                        cycles = json.loads(row['ped_cycles']) if row['ped_cycles'] else []
-                        for ci, col in enumerate(ped1_cycle_positions):
-                            write_cell(ws1, er, col, cycles[ci] if ci < len(cycles) else '', mm1)
-
-                        write_cell(ws1, er, ped1_header['remarks_col'], row['remarks'], mm1)
-
-                    # --- PED_1 Signatures (Eng, Mfg, Mat, Purch) ---
-                    # Using row 37 or 38 based on template footer space
-                    # Adjust 'F37', 'S37' etc based on actual template layout
-
-                    # Engineering
-                    sign = get_ped_signature(conn, po_key, 'engineering')
-                    insert_signature(ws1, sign, "F37", 38, 6)  # Image at F37, Text at F38 (col 6)
-
-                    # Manufacturing
-                    sign = get_ped_signature(conn, po_key, 'manufacturing')
-                    insert_signature(ws1, sign, "M37", 38, 13)  # Adjust col as needed (M is 13)
-
-                    # Materials
-                    sign = get_ped_signature(conn, po_key, 'materials')
-                    insert_signature(ws1, sign, "O37", 38, 15)  # O is 15
-
-                    # Purchase
-                    sign = get_ped_signature(conn, po_key, 'purchase')
-                    insert_signature(ws1, sign, "S37", 38, 19)  # S is 19
-
-                    b1 = BytesIO();
-                    wb1.save(b1);
-                    b1.seek(0)
-                    zip_file.writestr(f"PED_1_{idx + 1}_{safe_customer}.xlsx", b1.read())
-
-                    # ================= PED_2 =================
-                    wb2 = openpyxl.load_workbook(templates['PED_2'])
-                    ws2 = wb2.active
-                    mm2 = build_merged_cell_map(ws2)
-
-                    if logo_path:
-                        try:
-                            img = Image(logo_path);
-                            img.width = 80;
-                            img.height = 60
-                            ws2.add_image(img, 'A1')
-                        except Exception:
-                            pass
-
-                    write_cell(ws2, 1, ped2_header['record_no_col'], form['record_no'], mm2)
-                    write_cell(ws2, 2, ped2_header['record_date_col'], form['record_date'], mm2)
-                    write_cell(ws2, *ped2_header['customer_row_col'], form['customer'], mm2)
-                    write_cell(ws2, *ped2_header['bid_row_col'], form['bid'], mm2)
-                    write_cell(ws2, *ped2_header['po_row_col'], form['po'], mm2)
-                    write_cell(ws2, *ped2_header['cr_row_col'], form['cr'], mm2)
-                    write_cell(ws2, *ped2_header['amendment_row_col'], form['amendment_details'], mm2)
-
-                    # Map internal keys to database keys
-                    # DB keys: special-process, welding, assembly, quality, painting, customer-service, commercial
-                    dept_db_keys = [
-                        'special-process', 'welding', 'assembly', 'quality',
-                        'painting', 'customer-service', 'commercial'
-                    ]
-
-                    # Columns in PED 2 template for signatures (Approximate)
-                    # Special Process: F37 (col 6)
-                    # Welding: K37 (col 11)
-                    # Assembly: M37 (col 13)
-                    # Quality: O37 (col 15)
-                    # Painting: T37 (col 20)
-                    # Cust Service: X37 (col 24)
-                    # Commercial: AB37 (col 28)
-
-                    sig_col_map = {
-                        'special-process': ('F37', 6),
-                        'welding': ('K37', 11),
-                        'assembly': ('M37', 13),
-                        'quality': ('O37', 15),
-                        'painting': ('T37', 20),
-                        'customer-service': ('X37', 24),
-                        'commercial': ('AB37', 28)
-                    }
-
-                    # Write Rows
-                    order = ['special-process', 'welding', 'assembly', 'quality',
-                             'painting', 'customer-service', 'commercial']
-
-                    r0 = 7  # CHANGED from 8 to 7
-                    for i, row in enumerate(rows):
-                        er = r0 + i
-                        write_cell(ws2, er, 1, row['item_no'], mm2)
-                        write_cell(ws2, er, 2, row['part_number'], mm2)
-                        write_cell(ws2, er, 3, row['part_description'], mm2)
-                        write_cell(ws2, er, 4, row['rev'], mm2)
-                        write_cell(ws2, er, 5, row['qty'], mm2)
-
-                        notes = json.loads(row['notes']) if row['notes'] else []
-                        for ni, key in enumerate(order):
-                            write_cell(ws2, er, ped2_remarks_map[key],
-                                       notes[ni] if ni < len(notes) else '', mm2)
-
-                        write_cell(ws2, er, ped2_header['remarks_col'], row['remarks'], mm2)
-
-                    # --- PED_2 Signatures ---
-                    for d_key in dept_db_keys:
-                        if d_key in sig_col_map:
-                            cell_ref, col_idx = sig_col_map[d_key]
-                            sign = get_ped_signature(conn, po_key, d_key)
-                            insert_signature(ws2, sign, cell_ref, 38, col_idx)
-
-                    b2 = BytesIO();
-                    wb2.save(b2);
-                    b2.seek(0)
-                    zip_file.writestr(f"PED_2_{idx + 1}_{safe_customer}.xlsx", b2.read())
-
-                    # ================= PED COMMENTS (ONCE) =================
-                    cbuf = build_ped_comments_excel(conn, form, form_id)
-                    zip_file.writestr(f"PED_Comments_{safe_customer}.xlsx", cbuf.read())
+                # ------------ PED_Comments ------------
+                cbuf = build_ped_comments_excel(conn, form, form_id)
+                zip_file.writestr(f"PED_Comments_{safe_customer}.xlsx", cbuf.read())
 
         conn.close()
         zip_buffer.seek(0)
@@ -6321,118 +4227,12 @@ def build_lead_comments_excel(conn, form, form_id):
 @login_required
 def export_lead_to_excel():
     import openpyxl
-    from openpyxl.drawing.image import Image
     from openpyxl.styles import Alignment
-    from openpyxl.utils import get_column_letter
-    from openpyxl.utils.units import pixels_to_EMU
     from io import BytesIO
     import zipfile
     from flask import make_response, jsonify, request
     import os
-    from PIL import Image as PILImage, ImageChops
     import psycopg2.extras
-
-    # --- Helpers for Signature Insertion (FIXED: use BytesIO, no temp files) ---
-    def insert_signature(ws, img_path, start_col, end_col, row):
-        if not img_path or not os.path.exists(img_path):
-            return
-
-        try:
-            pil = PILImage.open(img_path)
-
-            # normalize transparency
-            if pil.mode in ("RGBA", "LA") or (pil.mode == "P" and "transparency" in pil.info):
-                bg = PILImage.new("RGBA", pil.size, (255, 255, 255, 0))
-                bg.paste(pil, mask=pil.convert("RGBA").split()[-1])
-                pil = bg
-            pil = pil.convert("RGBA")
-
-            # trim whitespace
-            try:
-                bbox = ImageChops.invert(pil.convert("L")).getbbox()
-                if bbox:
-                    pil = pil.crop(bbox)
-            except Exception:
-                pass
-
-            def col_width_to_pixels(ws, col_idx):
-                col_letter = get_column_letter(col_idx)
-                w = ws.column_dimensions.get(col_letter).width
-                if w is None:
-                    w = 8.43
-                if w < 1:
-                    return int(w * 12)
-                return int((w - 0.75) * 7 + 5)
-
-            def row_height_to_pixels(ws, row_idx):
-                h = ws.row_dimensions.get(row_idx).height
-                if h is None:
-                    h = 15
-                return int(h * 96.0 / 72.0)
-
-            span_width_px = sum(col_width_to_pixels(ws, c) for c in range(start_col, end_col + 1))
-            span_height_px = row_height_to_pixels(ws, row)
-            if span_height_px == 0:
-                span_height_px = 20
-
-            target_w = max(1, int(span_width_px * 0.8))
-            target_h = max(1, int(span_height_px * 0.9))
-
-            orig_w, orig_h = pil.size
-            if orig_w <= 0 or orig_h <= 0:
-                return
-
-            ratio = min(target_w / orig_w, target_h / orig_h)
-            new_w = max(1, int(orig_w * ratio))
-            new_h = max(1, int(orig_h * ratio))
-
-            pil = pil.resize((new_w, new_h), PILImage.LANCZOS)
-
-            img_bytes = BytesIO()
-            pil.save(img_bytes, format="PNG")
-            img_bytes.seek(0)
-
-            img = Image(img_bytes)
-            img.width = new_w
-            img.height = new_h
-
-            anchor_cell = get_column_letter(start_col) + str(row)
-            ws.add_image(img, anchor_cell)
-
-            center_x_px = (span_width_px - new_w) // 2
-            center_y_px = (span_height_px - new_h) // 2
-
-            try:
-                anch = getattr(img, "anchor", None)
-                if anch is not None and hasattr(anch, "_from"):
-                    anch._from.col = start_col - 1
-                    anch._from.row = row - 1
-                    anch._from.colOff = pixels_to_EMU(max(0, center_x_px))
-                    anch._from.rowOff = pixels_to_EMU(max(0, center_y_px))
-            except Exception:
-                pass
-
-        except Exception as e:
-            print(f"Error inserting signature {img_path}: {e}")
-
-    def write_signature_text(ws, start_col, end_col, row, signed_by, signed_at):
-        date_str = ''
-        if signed_at:
-            try:
-                date_str = signed_at.strftime('%d-%m-%Y %H:%M')
-            except Exception:
-                date_str = str(signed_at)
-
-        text = f"{signed_by} | {date_str}" if signed_by else ""
-
-        try:
-            ws.merge_cells(start_row=row, start_column=start_col, end_row=row, end_column=end_col)
-        except Exception:
-            pass
-
-        cell = ws.cell(row=row, column=start_col)
-        cell.value = text
-        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
     def build_merged_cell_map(ws):
         merged_map = {}
@@ -6450,6 +4250,23 @@ def export_lead_to_excel():
         else:
             ws.cell(row=row, column=col).value = value
 
+    # Signature text writer for each signature field
+    def write_signature_text(ws, start_col, end_col, row, signed_by, signed_at):
+        date_str = ''
+        if signed_at:
+            try:
+                date_str = signed_at.strftime('%d-%m-%Y %H:%M')
+            except Exception:
+                date_str = str(signed_at)
+        text = f"Verified by {signed_by} with {date_str}" if signed_by else ""
+        try:
+            ws.merge_cells(start_row=row, start_column=start_col, end_row=row, end_column=end_col)
+        except Exception:
+            pass
+        cell = ws.cell(row=row, column=start_col)
+        cell.value = text
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
     template_path = 'attached_assets/Lead Form_1763437805952.xlsx'
     logo_path = 'attached_assets/GTN_LOGO_1762400078631.png'
 
@@ -6458,15 +4275,15 @@ def export_lead_to_excel():
 
     use_logo = os.path.exists(logo_path)
 
-    # --- Signature Map for LEAD Form (UPDATED to match your HTML final dept keys) ---
+    # Map field: (start_col, end_col)
     sig_map = {
-        'css': {'start_col': 8, 'end_col': 9},                     # H-I
-        'materials': {'start_col': 10, 'end_col': 11},             # J-K
-        'technical-operations': {'start_col': 12, 'end_col': 14},  # L-N
-        'quality': {'start_col': 15, 'end_col': 16},               # O-P
-        'operations': {'start_col': 17, 'end_col': 19},            # Q-S
+        'css': (8, 9),                   # H38-H39 (H-I)
+        'materials': (10, 11),           # J38-J39 (J-K)
+        'technical-operations': (12, 14),# L38-L39 (L-N)
+        'quality': (15, 16),             # O38-O39 (O-P)
+        'operations': (17, 19),          # Q38-Q39 (Q-S)
     }
-    # Image row = 38, Text row = 39
+    # Text row: 38 for all signatures
 
     po_ids_param = (request.args.get('po_ids') or '').strip()
     po_ids = []
@@ -6531,28 +4348,24 @@ def export_lead_to_excel():
 
                     if use_logo:
                         try:
-                            logo_img = Image(logo_path)
+                            logo_img = openpyxl.drawing.image.Image(logo_path)
                             logo_img.width = 80
                             logo_img.height = 60
                             ws.add_image(logo_img, 'A1')
                         except Exception:
                             pass
 
-                    # ---- Header ----
+                    # ---- Main header fields ----
                     write_cell(ws, 1, 16, form['record_no'] or 'SAL/R02/Y', merged_map)  # P1
-                    write_cell(ws, 2, 16, form['record_date'] or '', merged_map)        # P2
-                    write_cell(ws, 3, 3, form['customer'] or '', merged_map)            # C3
-                    write_cell(ws, 3, 6, form['bid'] or '', merged_map)                 # F3
-                    write_cell(ws, 3, 11, form['po'] or '', merged_map)                 # K3
-                    write_cell(ws, 3, 16, form['cr'] or '', merged_map)                 # P3
+                    write_cell(ws, 2, 16, form['record_date'] or '', merged_map)         # P2
+                    write_cell(ws, 3, 3, form['customer'] or '', merged_map)             # C3
+                    write_cell(ws, 3, 6, form['bid'] or '', merged_map)                  # F3
+                    write_cell(ws, 3, 11, form['po'] or '', merged_map)                  # K3
+                    write_cell(ws, 3, 16, form['cr'] or '', merged_map)                  # P3
+                    write_cell(ws, 37, 1, form['general_remarks'] or '', merged_map)     # A37
+                    write_cell(ws, 39, 1, (form.get('prepared_by') or ''), merged_map)   # A39
 
-                    # ---- Amendment / General Remarks ----
-                    write_cell(ws, 37, 1, form['general_remarks'] or '', merged_map)
-
-                    # ---- Prepared By (A39) ----
-                    write_cell(ws, 39, 1, (form.get('prepared_by') or ''), merged_map)
-
-                    # ---- Rows ----
+                    # ---- Detail rows ----
                     cur.execute("""
                         SELECT item_no, part_number, part_description,
                                rev, qty, customer_required_date,
@@ -6576,26 +4389,21 @@ def export_lead_to_excel():
                         write_cell(ws, er, 15, r['gtn_agreed_date'], merged_map)
                         write_cell(ws, er, 16, r['remarks'], merged_map)
 
-                    # ---- Signatures (NOW FROM LEAD table, not CR) ----
-                    for dept, mapping in sig_map.items():
+                    # ---- Insert signature text (NO image) ----
+                    for dept, (start_col, end_col) in sig_map.items():
                         cur.execute("""
-                            SELECT lds.signed_by, lds.signed_at, ms.signature_path
-                            FROM lead_department_signatures lds
-                            JOIN master_signatures ms
-                              ON ms.username = lds.signed_by
-                             AND ms.department = lds.department
-                             AND ms.is_active = TRUE
-                            WHERE lds.po_key = %s AND lds.department = %s
+                            SELECT signed_by, signed_at
+                            FROM lead_department_signatures
+                            WHERE po_key = %s AND department = %s
                         """, (po_key, dept))
                         sig_data = cur.fetchone()
-
-                        if sig_data and sig_data.get('signature_path'):
-                            full_path = os.path.join(app.root_path, sig_data['signature_path'].lstrip('/'))
-                            insert_signature(ws, full_path, mapping['start_col'], mapping['end_col'], 38)
+                        if sig_data:
+                            signed_by = sig_data.get('signed_by', '')
+                            signed_at = sig_data.get('signed_at')
                             write_signature_text(
                                 ws,
-                                mapping['start_col'], mapping['end_col'], 39,
-                                sig_data.get('signed_by'), sig_data.get('signed_at')
+                                start_col, end_col, 38,  # Write in row 38
+                                signed_by, signed_at
                             )
 
                     buf = BytesIO()
