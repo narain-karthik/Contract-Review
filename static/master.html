@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contract Review Master Dashboard — GTN ENGINEERING (INDIA) LIMITED</title>
+
+  <style>
+    :root{
+      --bg: #f3f9fc;
+      --card: #ffffff;
+      --accent: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 12px 30px rgba(18,48,80,0.07);
+      --glass: rgba(255,255,255,0.6);
+      --max-width: 1920px; /* changed to 1920px as requested */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg,#eaf7ff 0%, #d8eef8 100%);
+      color:#12202b;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+
+    /* Outer container centered on 1920 width */
+    .page-wrap{
+      width:100%;
+      max-width:var(--max-width);
+      margin:0 auto;
+      padding:18px;
+    }
+
+    .container{
+      width:100%;
+      background: transparent;
+      /* keep internal padding for breathing room */
+      padding: 8px 24px 40px 24px;
+    }
+
+    header.top{
+      display:flex;
+      align-items:flex-start;
+      gap:18px;
+      margin-bottom:18px;
+      position:relative;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1 1 auto;
+    }
+
+    .brand .logo img{
+      height:82px; /* slightly larger for large screens */
+      width:auto;
+      display:block;
+      border-radius:8px;
+      box-shadow: 0 8px 18px rgba(12,48,88,0.06);
+      background: white;
+      padding:10px;
+    }
+
+    .titles{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .company{
+      font-weight:700;
+      font-size:18px;
+      color:#0f2a44;
+      letter-spacing:0.4px;
+    }
+    .ims{
+      font-size:13px;
+      color:var(--accent);
+      text-transform:uppercase;
+      font-weight:700;
+    }
+    .page{ font-size:14px; color:var(--muted); }
+
+    .meta{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .meta .userline{ font-size:14px; color:#1f2937; display:flex; align-items:center; gap:10px; }
+    .meta-box{
+      display:inline-block;
+      background:var(--card);
+      padding:8px 10px;
+      border-radius:8px;
+      box-shadow: 0 6px 18px rgba(12,48,88,0.04);
+      font-weight:600;
+    }
+
+    .notification-bell{
+      position:relative;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px;
+      border-radius:8px;
+      transition:background .15s;
+    }
+    .notification-bell:hover{ background: rgba(10,120,255,0.04); }
+    .notification-badge{
+      position:absolute;
+      top:-6px;
+      right:-6px;
+      background:#ef4444;
+      color:white;
+      font-size:11px;
+      padding:2px 6px;
+      border-radius:999px;
+      box-shadow:0 4px 10px rgba(14,20,40,0.12);
+    }
+
+    .notification-panel{
+      position:absolute;
+      right:0;
+      top:92px;
+      width:360px;
+      background:var(--card);
+      border-radius:10px;
+      box-shadow:var(--shadow);
+      border: 1px solid rgba(12,34,56,0.04);
+      z-index:50;
+      overflow:hidden;
+    }
+    .notification-header{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid #f1f5f9; }
+    .notification-list{ max-height:320px; overflow:auto; padding:8px; }
+    .notification-item{ padding:12px; border-radius:8px; margin-bottom:8px; background: #fff; cursor:pointer; transition:background .12s; }
+    .notification-item.unread{ background: linear-gradient(90deg, rgba(46,160,255,0.04), rgba(255,255,255,0)); border-left:4px solid var(--accent); }
+    .notification-item:hover{ background:#f8fafc; }
+    .notification-message{ font-size:14px; color:#0f1724; }
+    .notification-time{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+    /* Main panels */
+    .add-po, .po-list, .amend{
+      margin-top:16px;
+      background:var(--card);
+      border-radius:12px;
+      padding:20px;
+      box-shadow: var(--shadow);
+      border:1px solid rgba(10,30,60,0.03);
+    }
+
+    .add-po h4, .po-list h4{ margin:0 0 12px 0; font-size:18px; color:#0f2a44; }
+
+    .fields-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px 18px;
+      align-items:center;
+    }
+    .field-input, .field-select{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(10,30,60,0.06);
+      height:46px;
+      font-size:15px;
+      background:white;
+      outline: none;
+    }
+    .field-input::placeholder{ color:#cbd5e1; }
+
+    .actions{ margin-top:16px; display:flex; gap:10px; align-items:center; }
+    .btn{
+      border:0;
+      padding:10px 14px;
+      border-radius:10px;
+      background: #f1f5f9;
+      cursor:pointer;
+      font-weight:700;
+      color:#0f1724;
+      box-shadow: 0 6px 16px rgba(12,48,88,0.04);
+    }
+    .btn.primary{
+      background: linear-gradient(180deg,var(--accent), var(--accent-2));
+      color:white;
+      box-shadow: 0 10px 26px rgba(46,160,255,0.15);
+    }
+    .btn.danger{ background:#ef4444; color:#fff; }
+
+    .po-list .po-item{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px;
+      border-radius:10px;
+      border:1px solid rgba(10,30,60,0.04);
+      background:white;
+      margin-bottom:12px;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .po-details{ font-size:15px; color:#0f1724; flex:1 1 auto; }
+    .po-actions{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .po-actions button{ margin-left:0; }
+
+    /* small completion badge/button near PO list */
+    .complete-status-btn{
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:none;
+      cursor:default;
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .complete-status-btn.complete{
+      background:#dcfce7;
+      color:#15803d;
+      border:1px solid rgba(21,128,61,0.4);
+    }
+    .complete-status-btn.pending{
+      background:#fee2e2;
+      color:#b91c1c;
+      border:1px solid rgba(185,28,28,0.4);
+    }
+
+    .no-po{ color:var(--muted); text-align:center; padding:12px; }
+
+    .nav{
+      margin-top:18px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .amend .note{ color:var(--muted); margin-top:8px; }
+
+    /* Modal */
+    .modal{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(6,18,30,0.26);
+      z-index:80;
+    }
+    .modal-content{
+      background:var(--card);
+      border-radius:12px;
+      padding:20px;
+      width:min(900px, 94%);
+      box-shadow:var(--shadow);
+    }
+    .checkbox-list{ max-height:420px; overflow:auto; margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+    .checkbox-item{ display:flex; gap:12px; align-items:center; padding:10px; border-radius:8px; border:1px solid rgba(10,30,60,0.03); }
+
+    /* responsive */
+    @media (max-width:1200px){
+      .brand .logo img{ height:70px; padding:8px; }
+      .fields-grid{ grid-template-columns:1fr; }
+      header.top { flex-direction:column; align-items:center; gap:12px; }
+      .meta{ width:100%; justify-content:space-between; }
+      .notification-panel{ right:14px; top:120px; width:320px; }
+      .po-item{ align-items:flex-start; }
+    }
+    @media (max-width:700px){
+      body{ padding:16px; }
+      .brand .logo img{ height:56px; }
+      .company{ font-size:15px; }
+      .ims{ font-size:11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap" role="main">
+    <div class="container">
+
+      <header class="top" aria-label="Top header">
+        <div class="brand" role="banner">
+          <div class="logo" aria-hidden="false">
+            <!-- match the backend default filename so exports find the logo -->
+            <img src="/attached_assets/GTN_LOGO_1762400078631.png" alt="GTN Logo" onerror="this.style.display='none'">
+          </div>
+          <div class="titles">
+            <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+            <div class="ims">CONTRACT REVIEW</div>
+            <div class="page">Contract Review Master Dashboard</div>
+          </div>
+        </div>
+
+        <!-- User / notifications only -->
+        <div class="meta" aria-hidden="false">
+          <div class="userline" aria-live="polite">
+            Signed in as: <span id="who" style="font-weight:700; margin-left:8px;"></span>
+            <div class="notification-bell" id="notificationBell" title="Notifications" aria-haspopup="true" aria-expanded="false" style="margin-left:12px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f1724" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="notification-panel" id="notificationPanel" style="display:none;">
+          <div class="notification-header">
+            <h3 style="margin:0; font-size:14px;">Notifications</h3>
+            <button class="mark-all-read btn" id="markAllRead" style="font-size:12px; padding:6px 10px;">Mark all</button>
+          </div>
+          <div class="notification-list" id="notificationList">
+            <div class="notification-empty">No notifications</div>
+          </div>
+        </div>
+      </header>
+
+      <!--Menu Bar-->
+      <center> 
+      <div class="nav" aria-hidden="false">
+        <button id="emailSettingsBtn" class="btn" title="Configure email notifications (Admin only)" style="display:none;">Email Settings</button>
+        <button id="manageUsersBtn" class="btn">Manage Users</button>
+
+        <!-- NEW: Admin Dashboard button -->
+        <button id="dashboardBtn" class="btn" style="display:none;">Dashboard</button>
+          <button id="masterSignatureBtn" class="btn">Master Signatures</button>
+        <button id="exportExcelBtn" class="btn primary" title="Export CR data to Excel files">Export CR to Excel</button>
+        <button id="exportPedExcelBtn" class="btn primary" title="Export PED data to Excel files">Export PED to Excel</button>
+        <button id="exportLeadExcelBtn" class="btn primary" title="Export Lead Form data to Excel files">Export Lead to Excel</button>
+        <button id="backupBtn" class="btn" title="Download data as .txt">Backup (.txt)</button>
+        <button id="restoreBtn" class="btn" title="Restore data from .txt">Restore (.txt)</button>
+        <input id="restoreInput" type="file" accept=".txt" style="display:none" />
+        <button id="logoutBtn" class="btn danger">Logout</button>
+      </div>
+      </center>
+
+      <!-- Export modal -->
+      <div id="exportModal" class="modal" style="display:none;">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+          <h3 id="modalTitle">Select POs to Export</h3>
+          <div id="poCheckboxList" class="checkbox-list"></div>
+          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+            <button id="confirmExport" class="btn primary">Export Selected</button>
+            <button id="cancelExportBtn" class="btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="add-po" id="addPoSection" aria-labelledby="addPoTitle">
+        <h4 id="addPoTitle">Add New Production Order (PO)</h4>
+        <form id="poForm">
+          <div class="fields-grid">
+            <label for="customerName">Customer Name:</label>
+            <select id="customerName" class="field-select" required>
+              <option value="">Select Customer</option>
+              <option>TFMC SINGAPORE</option>
+              <option>TFMC SAUDI ARABIA</option>
+              <option>TFMC MALAYSIA</option>
+              <option>TFMC DUBAI</option>
+              <option>TFMC HYDERABAD</option>
+              <option>TFMC INDONESIA</option>
+              <option>TFMC MEXICO</option>
+              <option>TFMC ARGENTINA</option>
+              <option>TFMC BRAZIL</option>
+              <option>TFMC COLOMBIA</option>
+              <option>TFMC CANADA</option>
+              <option>TFMC HOUSTON</option>
+              <option>TFMC HOUSTON - KONGSBERG</option>
+              <option>TFMC VENEZUELA</option>
+              <option>TFMC ABU DHABI</option>
+            </select>
+
+            <label for="bidDt">BID#./Dt:</label>
+            <input id="bidDt" class="field-input" type="text" placeholder="Enter BID number / date" required />
+
+            <label for="poRevDt">PO#./Rev/Dt:</label>
+            <input id="poRevDt" class="field-input" type="text" placeholder="Enter PO / Rev / Date" required />
+
+            <label for="crRevDt">CR #./Rev/ Dt:</label>
+            <input id="crRevDt" class="field-input" type="text" placeholder="Enter CR / Rev / Date" required />
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn primary">Add PO</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="po-list" aria-labelledby="poListTitle">
+        <h4 id="poListTitle">Production Orders (POs)</h4>
+        <div id="poContainer"></div>
+        <div id="noPO" class="no-po">No POs added yet. Add one above!</div>
+      </section>
+
+      <section class="amend" aria-hidden="false">
+        <div><strong>Note:</strong></div>
+        <div class="note">
+          This dashboard manages multiple POs. For each PO, click the form buttons to open the Contract Review forms with auto-filled details. Data syncs with server via API.
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Embedded master JS (all functionality in one file) -->
+  <script>
+  (function(){
+    /* ---------- cached DOM ---------- */
+    const form = document.getElementById('poForm');
+    const poContainer = document.getElementById('poContainer');
+    const noPO = document.getElementById('noPO');
+    const manageUsersBtn = document.getElementById('manageUsersBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const who = document.getElementById('who');
+    const addPoSection = document.getElementById('addPoSection');
+
+    const backupBtn = document.getElementById('backupBtn');
+    const restoreBtn = document.getElementById('restoreBtn');
+    const restoreInput = document.getElementById('restoreInput');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const exportPedExcelBtn = document.getElementById('exportPedExcelBtn');
+    const exportLeadExcelBtn = document.getElementById('exportLeadExcelBtn');
+
+    const notificationBell = document.getElementById('notificationBell');
+    const notificationBadge = document.getElementById('notificationBadge');
+    const notificationPanel = document.getElementById('notificationPanel');
+    const notificationList = document.getElementById('notificationList');
+    const markAllReadBtn = document.getElementById('markAllRead');
+
+    const exportModal = document.getElementById('exportModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const poCheckboxList = document.getElementById('poCheckboxList');
+    const confirmExport = document.getElementById('confirmExport');
+    const cancelExport = document.getElementById('cancelExportBtn');
+
+    /* NEW: Dashboard & Completed Forms buttons */
+    const dashboardBtn = document.getElementById('dashboardBtn');
+    const completedFormsBtn = document.getElementById('completedFormsBtn');
+
+    /* ---------- state ---------- */
+    let pos = [];
+    let editingId = null;
+    let notifications = [];
+    let currentExportType = null;
+
+    const dept = localStorage.getItem('userDepartment') || localStorage.getItem('userRole');
+    const name = localStorage.getItem('userName') || localStorage.getItem('username') || '';
+    const isAdmin = (localStorage.getItem('userIsAdmin') === 'true');
+
+    // redirect to login if no session-like info
+    if (!dept) { window.location.href = '/'; return; }
+    who.textContent = `${name} (${dept.toUpperCase()}${isAdmin ? ', Admin' : ''})`;
+
+    if (!isAdmin) {
+      addPoSection.style.display = 'none';
+      manageUsersBtn.style.display = 'none';
+      backupBtn.style.display = 'none';
+      restoreBtn.style.display = 'none';
+      document.getElementById('emailSettingsBtn').style.display = 'none';
+      if (dashboardBtn) dashboardBtn.style.display = 'none';
+      if (completedFormsBtn) completedFormsBtn.style.display = 'none';
+    } else {
+      document.getElementById('emailSettingsBtn').style.display = 'inline-block';
+      if (dashboardBtn) dashboardBtn.style.display = 'inline-block';
+      if (completedFormsBtn) completedFormsBtn.style.display = 'inline-block';
+    }
+
+    function encodeParams(data) {
+      return Object.keys(data).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(data[k])}`).join('&');
+    }
+
+    /* ---------- helper: fetch admin form status for completion badges ---------- */
+    // cache mapping: poKey -> { crStatus, pedStatus, leadStatus }
+    let poStatusMap = {};
+
+    async function refreshPoStatusForAdmin(){
+      if (!isAdmin) return;
+      try{
+        const res = await fetch('/api/admin/po-overview', { credentials:'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json().catch(()=> ({}));
+        const rows = data.pos || [];
+        const map = {};
+        rows.forEach(r=>{
+          const key = `${r.customer}|${r.bid}|${r.po}|${r.cr}`;
+          map[key] = {
+            crStatus: r.crStatus,
+            pedStatus: r.pedStatus,
+            leadStatus: r.leadStatus
+          };
+        });
+        poStatusMap = map;
+      }catch(e){
+        console.error('Failed to load PO overview status:', e);
+      }
+    }
+
+    function allFormsCompletedForPo(po){
+      if (!po) return false;
+      const key = `${po.customer}|${po.bid}|${po.po}|${po.cr}`;
+      const st = poStatusMap[key];
+      if (!st) return false;
+      return st.crStatus === 'complete' && st.pedStatus === 'complete' && st.leadStatus === 'complete';
+    }
+
+    /* ---------- API calls ---------- */
+    async function loadPOs() {
+      try {
+        const response = await fetch('/api/pos', { credentials: 'same-origin' });
+        if (response.ok) {
+          pos = await response.json();
+          // refresh status map only once after POs load
+          await refreshPoStatusForAdmin();
+          renderPOs();
+        } else {
+          console.warn('Failed to load POs');
+        }
+      } catch (err) {
+        console.error('Failed to load POs:', err);
+      }
+    }
+
+    function renderPOs() {
+      poContainer.innerHTML = '';
+      if (!Array.isArray(pos) || pos.length === 0) {
+        noPO.style.display = 'block';
+        return;
+      }
+      noPO.style.display = 'none';
+      pos.forEach((po) => {
+        const item = document.createElement('div');
+        item.className = 'po-item';
+
+        // build completion badge (visible to everyone, computed from admin status map)
+        let completeHtml = '';
+        const isComplete = allFormsCompletedForPo(po);
+        const label = isComplete ? 'All 3 Forms Completed' : 'Forms Pending';
+        const cls = isComplete ? 'complete-status-btn complete' : 'complete-status-btn pending';
+        completeHtml = `<button type="button" class="${cls}" title="CR / PED / LEAD completion status">${label}</button>`;
+
+        item.innerHTML = `
+          <div class="po-details">
+            <strong>${escapeHtml(po.po)}</strong> — Customer: ${escapeHtml(po.customer)}, BID: ${escapeHtml(po.bid)}, CR: ${escapeHtml(po.cr)}
+          </div>
+          <div class="po-actions">
+            ${completeHtml}
+            <button class="open-form btn" data-id="${po.id}" data-form="CR">Contract Review</button>
+            <button class="open-form btn" data-id="${po.id}" data-form="PED">PED Review</button>
+            <button class="open-form btn" data-id="${po.id}" data-form="LEAD">Lead Time</button>
+            ${isAdmin ? `<button class="edit btn" data-id="${po.id}">Edit</button>
+            <button class="delete btn" data-id="${po.id}">Delete</button>` : ''}
+          </div>
+        `;
+        poContainer.appendChild(item);
+      });
+    }
+
+    // sanitize text for safe HTML
+    function escapeHtml(text){
+      const d = document.createElement('div');
+      d.textContent = text || '';
+      return d.innerHTML;
+    }
+
+    /* ---------- PO create / edit ---------- */
+    if (isAdmin){
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const customer = document.getElementById('customerName').value;
+        const bid = document.getElementById('bidDt').value.trim();
+        const po = document.getElementById('poRevDt').value.trim();
+        const cr = document.getElementById('crRevDt').value.trim();
+        if (!customer || !bid || !po || !cr) { alert('Please fill in all fields.'); return; }
+
+        const poData = { customer, bid, po, cr };
+        try {
+          const method = editingId !== null ? 'PUT' : 'POST';
+          const url = editingId !== null ? `/api/pos/${editingId}` : '/api/pos';
+          const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(poData)
+          });
+
+          if (response.ok) {
+            editingId = null;
+            form.reset();
+            await loadPOs();
+            alert('PO saved.');
+          } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to save PO');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Failed to save PO');
+        }
+      });
+    }
+
+    /* ---------- PO actions (open, edit, delete) ---------- */
+    poContainer.addEventListener('click', async (e) => {
+      const id = parseInt(e.target.dataset.id, 10);
+      if (e.target.classList.contains('open-form')) {
+        const po = pos.find(p => p.id === id);
+        if (!po) return;
+        const params = encodeParams(po);
+        const type = e.target.dataset.form;
+        const url = type === 'CR' ? `CR_index_all.html?${params}` :
+                    type === 'PED' ? `PED_index.html?${params}` :
+                    `LEAD_index.html?${params}`;
+        window.open(url, '_blank');
+      } else if (isAdmin && e.target.classList.contains('edit')) {
+        const po = pos.find(p => p.id === id);
+        if (!po) return;
+        document.getElementById('customerName').value = po.customer;
+        document.getElementById('bidDt').value = po.bid;
+        document.getElementById('poRevDt').value = po.po;
+        document.getElementById('crRevDt').value = po.cr;
+        editingId = id;
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (isAdmin && e.target.classList.contains('delete')) {
+        if (confirm('Delete this PO?')) {
+          try {
+            const response = await fetch(`/api/pos/${id}`, { method: 'DELETE', credentials: 'same-origin' });
+            if (response.ok) {
+              await loadPOs();
+            } else {
+              alert('Failed to delete PO');
+            }
+          } catch (err) {
+            console.error(err);
+            alert('Failed to delete PO');
+          }
+        }
+      }
+    });
+
+    /* ---------- Backup / Restore ---------- */
+    async function backupData() {
+      try {
+        const response = await fetch('/api/backup', { credentials: 'same-origin' });
+        if (response.ok) {
+          const data = await response.json();
+          const text = JSON.stringify(data, null, 2);
+          const blob = new Blob([text], { type: 'text/plain' });
+          const dt = new Date();
+          const ts = `${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}-${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}${String(dt.getSeconds()).padStart(2,'0')}`;
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `gtn-contract-review-backup-${ts}.txt`;
+          a.click();
+          setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+        } else {
+          alert('Failed to create backup');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Failed to create backup');
+      }
+    }
+
+    function restoreData(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const obj = JSON.parse(reader.result);
+          if (!obj || typeof obj !== 'object') throw new Error('Invalid file format');
+          if (!Array.isArray(obj.users) || !Array.isArray(obj.pos)) {
+            throw new Error('Missing users/pos arrays');
+          }
+          const hasAdmin = obj.users.some(u => u && u.isAdmin === true);
+          if (!hasAdmin) {
+            alert('Restore aborted: imported data does not contain an Admin user.');
+            return;
+          }
+          if (!confirm('Restore will replace current Users and POs. Proceed?')) return;
+
+          const response = await fetch('/api/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(obj)
+          });
+
+          if (response.ok) {
+            alert('Restore completed. Logging out...');
+            await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+            window.location.href = '/';
+          } else {
+            const data = await response.json();
+            alert('Failed to restore: ' + (data.error || 'Unknown error'));
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Failed to restore: ' + (err.message || 'Invalid file'));
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    if (isAdmin) {
+      backupBtn.addEventListener('click', backupData);
+      restoreBtn.addEventListener('click', () => restoreInput.click());
+      restoreInput.addEventListener('change', (e) => restoreData(e.target.files?.[0]));
+    }
+
+    /* ---------- Export modal behavior ---------- */
+    function showExportModal(exportType, title) {
+      if (!pos || pos.length === 0) {
+        alert('No POs available to export');
+        return;
+      }
+      currentExportType = exportType;
+      modalTitle.textContent = title;
+      poCheckboxList.innerHTML = '';
+      pos.forEach(po => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `po-${po.id}`;
+        checkbox.value = po.id;
+        checkbox.checked = true;
+        const label = document.createElement('label');
+        label.htmlFor = `po-${po.id}`;
+        label.textContent = `${po.po} — ${po.customer} (BID: ${po.bid})`;
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        div.addEventListener('click', (e) => {
+          if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
+        });
+        poCheckboxList.appendChild(div);
+      });
+      exportModal.style.display = 'flex';
+    }
+
+    function hideExportModal(){ exportModal.style.display = 'none'; /* DO NOT clear currentExportType here — handled in performExport */ }
+
+    async function performExport(){
+      // capture the export type now — don't rely on currentExportType after hiding the modal
+      const exportType = currentExportType;
+      if (!exportType) { alert('Unknown export type. Please re-open the export dialog.'); return; }
+
+      const selectedCheckboxes = poCheckboxList.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+      if (selectedIds.length === 0){ alert('Please select at least one PO to export'); return; }
+
+      // hide modal now (but we already captured exportType)
+      hideExportModal();
+      // clear currentExportType to avoid accidental reuse
+      currentExportType = null;
+
+      // defensive explicit mapping — was a source of bugs earlier
+      let endpoint, downloadName, successMsg, buttonRef;
+      switch (exportType) {
+        case 'CR':
+          endpoint = '/api/cr-export-excel';
+          downloadName = 'CR_Export.zip';
+          successMsg = 'CR Excel export completed!';
+          buttonRef = exportExcelBtn;
+          break;
+        case 'PED':
+          endpoint = '/api/ped-export-excel';
+          downloadName = 'PED_Export.zip';
+          successMsg = 'PED Excel export completed!';
+          buttonRef = exportPedExcelBtn;
+          break;
+        case 'LEAD':
+          endpoint = '/api/lead-export-excel';
+          downloadName = 'Lead_Form.zip';
+          successMsg = 'Lead Form Excel export completed!';
+          buttonRef = exportLeadExcelBtn;
+          break;
+        default:
+          alert('Unknown export type: ' + exportType);
+          return;
+      }
+
+      try {
+        console.log('performExport ->', { exportType, endpoint, selectedIds });
+        buttonRef.disabled = true;
+        const originalText = buttonRef.textContent;
+        buttonRef.textContent = 'Exporting...';
+
+        const response = await fetch(`${endpoint}?po_ids=${selectedIds.join(',')}`, { credentials: 'same-origin' });
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = downloadName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          alert(successMsg);
+        } else {
+          // try to parse JSON error message safely
+          let errorText = 'Unknown error';
+          try {
+            const data = await response.json();
+            errorText = data.error || JSON.stringify(data);
+          } catch (ex) {
+            errorText = await response.text().catch(()=> 'Unknown error');
+          }
+          alert('Export failed: ' + errorText);
+          console.warn('Export failed response', response.status, errorText);
+        }
+      } catch (err) {
+        console.error('Export error:', err);
+        alert('Failed to export: ' + err.message);
+      } finally {
+        buttonRef.disabled = false;
+        // restore original text
+        if (buttonRef) buttonRef.textContent = (buttonRef === exportExcelBtn) ? 'Export CR to Excel' :
+                                               (buttonRef === exportPedExcelBtn) ? 'Export PED to Excel' :
+                                               'Export Lead to Excel';
+      }
+    }
+
+    exportExcelBtn.addEventListener('click', () => showExportModal('CR', 'Select POs to Export (Contract Review)'));
+    exportPedExcelBtn.addEventListener('click', () => showExportModal('PED', 'Select POs to Export (PED Review)'));
+    exportLeadExcelBtn.addEventListener('click', () => showExportModal('LEAD', 'Select POs to Export (Lead Form)'));
+    confirmExport.addEventListener('click', performExport);
+    cancelExport.addEventListener('click', () => { hideExportModal(); currentExportType = null; });
+
+    /* ---------- manage/logout ---------- */
+    manageUsersBtn.addEventListener('click', () => window.location.href = 'manage_users.html');
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+      localStorage.removeItem('userDepartment');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userIsAdmin');
+      window.location.href = '/';
+    });
+
+    /* NEW: Dashboard navigation */
+    if (dashboardBtn) {
+      dashboardBtn.addEventListener('click', () => {
+        // open in new tab; change to location.href = 'dashboard.html' for same-tab
+        window.open('dashboard.html', '_blank');
+      });
+    }
+
+    /* NEW: Completed Forms navigation (admin only) */
+    if (completedFormsBtn) {
+      completedFormsBtn.addEventListener('click', () => {
+        // reuse same dashboard (filtered there by status), or later you can point to another page
+        window.open('dashboard.html', '_blank');
+      });
+    }
+
+    /* ---------- Notifications ---------- */
+    async function fetchNotifications(){
+      try {
+        const response = await fetch('/api/notifications', { credentials: 'same-origin' });
+        if (response.ok) {
+          const data = await response.json();
+          notifications = data.notifications || [];
+          updateNotificationUI();
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    }
+
+    async function fetchUnreadCount(){
+      try {
+        const response = await fetch('/api/notifications/unread_count', { credentials: 'same-origin' });
+        if (response.ok) {
+          const data = await response.json();
+          const count = data.unreadCount ?? data.count ?? 0;
+          updateBadge(count);
+        }
+      } catch (err) {
+        console.error('Failed to fetch unread count:', err);
+      }
+    }
+
+    function updateBadge(count){
+      if (count > 0){
+        notificationBadge.textContent = count;
+        notificationBadge.style.display = 'inline-block';
+      } else {
+        notificationBadge.style.display = 'none';
+      }
+    }
+
+    function formatTimeAgo(dateString){
+      if(!dateString) return '';
+      const now = new Date();
+      const date = new Date(dateString);
+      const seconds = Math.floor((now - date) / 1000);
+      if (seconds < 60) return 'Just now';
+      if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+      if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+      return date.toLocaleDateString();
+    }
+
+    function renderNotifications(){
+      if (!notifications || notifications.length === 0){
+        notificationList.innerHTML = '<div class="notification-empty">No notifications</div>';
+        return;
+      }
+      notificationList.innerHTML = notifications.map(n => `
+        <div class="notification-item ${n.isRead || n.is_read ? '' : 'unread'}" data-id="${n.id}">
+          <div class="notification-message">${escapeHtml(n.message)}</div>
+          <div class="notification-time">${formatTimeAgo(n.createdAt || n.created_at)}</div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.notification-item').forEach(item => {
+        item.addEventListener('click', async () => {
+          const notifId = item.dataset.id;
+          await markAsRead(notifId);
+        });
+      });
+    }
+
+    function updateNotificationUI(){
+      const unreadCount = (notifications || []).filter(n => !n.isRead && !n.is_read).length;
+      updateBadge(unreadCount);
+      renderNotifications();
+    }
+
+    async function markAsRead(notificationId, skipRefresh = false){
+      try {
+        const response = await fetch(`/api/notifications/${notificationId}/read`, {
+          method: 'PUT',
+          credentials: 'same-origin'
+        });
+        if (response.ok){
+          const notification = notifications.find(n => n.id == notificationId);
+          if (notification) {
+            notification.is_read = true;
+            notification.isRead = true;
+          }
+          if (!skipRefresh) {
+            updateNotificationUI();
+            fetchUnreadCount();
+          }
+        }
+      } catch (err) {
+        console.error('Failed to mark notification as read:', err);
+      }
+    }
+
+    async function markAllAsRead(){
+      try {
+        const unreadIds = (notifications || []).filter(n => !n.is_read && !n.isRead).map(n => n.id);
+        await Promise.all(unreadIds.map(id => markAsRead(id, true)));
+        notifications.forEach(n => n.is_read = true);
+        updateNotificationUI();
+        fetchUnreadCount();
+      } catch (err) {
+        console.error('Failed to mark all as read:', err);
+      }
+    }
+
+    notificationBell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = notificationPanel.style.display === 'block';
+      notificationPanel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) fetchNotifications();
+    });
+
+    markAllReadBtn.addEventListener('click', async () => { await markAllAsRead(); });
+
+    document.addEventListener('click', (e) => {
+      if (!notificationPanel.contains(e.target) && !notificationBell.contains(e.target)) {
+        notificationPanel.style.display = 'none';
+      }
+    });
+
+    /* ---------- Email settings (admin) ---------- */
+    const emailSettingsBtn = document.getElementById('emailSettingsBtn');
+    if (emailSettingsBtn) {
+      emailSettingsBtn.addEventListener('click', () => window.open('email_settings.html', '_blank'));
+    }
+
+    /* ---------- Init ---------- */
+    fetchUnreadCount();
+    setInterval(fetchUnreadCount, 30000); // refresh unread count every 30s
+    loadPOs();
+  })();
+
+      document.getElementById('masterSignatureBtn')?.addEventListener('click', () => {
+  window.location.href = '/master-signature.html';
+});
+
+  </script>
+</body>
+</html>

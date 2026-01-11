@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contract Review Check List — GTN ENGINEERING (INDIA) LIMITED (Combined)</title>
+
+  <style>
+    :root{
+      --bg: #f3f9fc;
+      --card: #ffffff;
+      --accent: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 12px 30px rgba(18,48,80,0.07);
+      --max-width: 1920px; /* as requested */
+      --pad: 28px;
+      --field-h: 44px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#eaf7ff 0%, #d8eef8 100%);
+      color:#12202b;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:var(--pad);
+      display:flex;
+      justify-content:center;
+    }
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+      padding:18px;
+    }
+
+    header.top{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      margin-bottom:18px;
+      justify-content:space-between;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1 1 auto;
+    }
+    /* Logo + titles */
+    .brand-logo{
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      background:white;
+      padding:6px;
+      box-shadow: 0 8px 18px rgba(12,48,88,0.06);
+      display:block;
+      object-fit:contain;
+    }
+    .titles { display:flex; flex-direction:column; gap:4px; }
+    .titles .company{ margin:0; font-size:20px; color:#0f2a44; font-weight:700; line-height:1; }
+    .titles .ims{ margin:0; font-size:13px; color: #0077ff; font-weight:600; text-transform:uppercase; letter-spacing:0.6px; }
+
+    .meta{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .meta .meta-box{ display:inline-block; background:var(--card); padding:8px 10px; border-radius:8px; box-shadow: 0 6px 18px rgba(12,48,88,0.04); font-weight:600; height:38px; }
+
+    .doc-info, .table-actions, .table-wrap, .sign-board-wrap, .amend, .comments-section, .form-block {
+      background: var(--card);
+      border-radius:12px;
+      padding:18px;
+      box-shadow: var(--shadow);
+      border:1px solid rgba(10,30,60,0.03);
+      margin-top:12px;
+    }
+
+    .doc-row{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:12px 18px;
+      align-items:center;
+    }
+
+    label{ font-size:13px; color:#0f1724; display:block; margin-bottom:6px; }
+    .field-input, .field-select, input.meta-box{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(10,30,60,0.06);
+      height:var(--field-h);
+      font-size:14px;
+      background:white;
+    }
+
+    .table-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .table-actions button, .toolbar button{
+      border:0;
+      padding:8px 12px;
+      border-radius:8px;
+      background:#f1f5f9;
+      cursor:pointer;
+      font-weight:600;
+      color:#0f1724;
+      box-shadow:0 6px 16px rgba(12,48,88,0.04);
+    }
+    .table-actions button:first-child{ background: linear-gradient(180deg,var(--accent), var(--accent-2)); color:white; box-shadow:0 10px 26px rgba(46,160,255,0.15); }
+
+    .toolbar{ margin-top:10px; display:flex; gap:8px; align-items:center; }
+
+    .table-wrap{ overflow:auto; margin-top:12px; }
+    table{ border-collapse:collapse; width:100%; font-size:13px; }
+    th, td{ border:1px solid rgba(10,30,60,0.06); padding:8px; vertical-align:middle; background:white; }
+    thead th{ background: linear-gradient(180deg,#ffffff,#f8fbff); font-weight:700; text-align:left; }
+    .narrow{ width:70px; text-align:center; }
+    .fixed{ width:70px; text-align:center; font-weight:700; }
+    .small{ width:90px; text-align:center; }
+    .actions-col, .row-actions{ width:110px; text-align:center; }
+    td.editable[contenteditable="true"]{ background:#fff; }
+    td.editable.locked-edit{ background:#f3f4f6; color:#9ca3af; cursor:not-allowed; }
+
+    td.cycle{ width:36px; text-align:center; cursor:pointer; user-select:none; }
+    td.cycle.locked{ opacity:0.5; pointer-events:none; }
+
+    .state-yes{ color:#065f46; font-weight:700; }
+    .state-no{ color:#b91c1c; font-weight:700; }
+    .state-na{ color:#92400e; font-weight:700; }
+
+    .sign-board{ width:100%; border-collapse:collapse; margin-top:8px; }
+    .sign-board th, .sign-board td{ padding:12px; border:1px solid rgba(10,30,60,0.04); text-align:left; background:#fff; }
+    .sig-line{ height:2px; background:#cccccc; margin-bottom:8px; }
+    .sig-name{ font-weight:600; font-size:13px; }
+
+    .amendment-field{ width:100%; padding:10px; border-radius:8px; border:1px solid rgba(10,30,60,0.06); }
+
+    .note{ color:var(--muted); padding:12px; border-radius:8px; background:#fff; border:1px solid rgba(10,30,60,0.03); }
+
+    .dept-note.locked-edit{ background:#f7f7f8; color:#6b7280; }
+
+    @media (max-width:1100px){
+      .doc-row{ grid-template-columns: 1fr; }
+      .table-actions{ flex-direction:column; align-items:stretch; }
+    }
+
+    @media print {
+      body { padding: 0; background: white; }
+      .table-actions, .toolbar, .comments-section { display: none !important; }
+      thead { display: table-header-group; }
+      .sign-board-wrap { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- updated header with logo -->
+    <header class="top">
+      <div class="brand">
+        <!-- update this path if your logo is elsewhere -->
+        <img src="attached_assets/GTN_LOGO.png" alt="GTN Logo" class="brand-logo">
+        <div class="titles">
+          <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+          <div class="ims">INTEGRATED MANAGEMENT SYSTEM RECORDS — COMBINED FORMS</div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div><strong>Record No</strong> <input type="text" id="recordNo" class="meta-box" value="SAL/R02/Z" /></div>
+        <div><strong>Date</strong> <input type="text" id="recordDate" class="meta-box" value="28.11.2025" /></div>
+      </div>
+    </header>
+
+    <section class="doc-info">
+      <div class="left">
+        <div class="doc-row">
+          <div>
+            <label for="customerName">Customer Name:</label>
+            <select id="customerName" class="field-select" aria-label="Customer Name">
+              <option>TFMC SINGAPORE</option>
+              <option>TFMC SAUDI ARABIA</option>
+              <option>TFMC MALAYSIA</option>
+              <option>TFMC DUBAI</option>
+              <option>TFMC HYDERABAD</option>
+              <option>TFMC INDONESIA</option>
+              <option>TFMC MEXICO</option>
+              <option>TFMC ARGENTINA</option>
+              <option>TFMC BRAZIL</option>
+              <option>TFMC COLOMBIA</option>
+              <option>TFMC CANADA</option>
+              <option>TFMC HOUSTON</option>
+              <option>TFMC HOUSTON - KONGSBERG</option>
+              <option>TFMC VENEZUELA</option>
+              <option>TFMC GSP</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="bidDt">BID./Dt:</label>
+            <input id="bidDt" class="field-input" type="text" placeholder="Enter BID number / date" />
+          </div>
+
+          <div>
+            <label for="poRevDt">PO#/Rev/Dt:</label>
+            <input id="poRevDt" class="field-input" type="text" placeholder="Enter PO / Rev / Date" />
+          </div>
+
+          <div>
+            <label for="crRevDt">CR#/Rev/Dt:</label>
+            <input id="crRevDt" class="field-input" type="text" placeholder="Enter CR / Rev / Date" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Combined PED Review + Dept Notes -->
+    <section class="form-block">
+      <h3>PED Review Checklist — Engineering / Manufacturing / Materials / Purchase + Dept Notes (Special Process / Welding / Assembly / Quality / Painting / Customer Service / Commercial)</h3>
+
+      <section class="table-actions">
+        <button id="addItemBtnPed" type="button">+ Add Item</button>
+        <button id="printBtnPed" type="button">Print / Save as PDF</button>
+        <button id="exportCsvPed" type="button">Export CSV</button>
+        <button id="exportTxtPed" type="button">Export TXT</button>
+        <button id="resetBtnPed" type="button">Reset Cycles</button>
+        <small>Click a review cell to toggle: ✓ → x → NA → (blank). Dept notes are editable — double-click a dept-note to toggle its status (✓ → x → NA → blank) or press Ctrl+Enter when focused to toggle. Click to edit text.</small>
+      </section>
+
+      <div class="toolbar">
+        <button id="openSharedCsvPed" type="button">Open Shared CSV</button>
+        <button id="reloadSharedCsvPed" type="button">Reload</button>
+        <button id="saveSharedCsvPed" type="button">Save</button>
+        <span id="sharedCsvNamePed" style="font-size:12px;color:#6b7280"></span>
+      </div>
+
+      <section class="table-wrap">
+        <table id="review-table-ped" aria-label="PED Review Checklist">
+          <caption>PED Review Checklist — Engineering / Manufacturing / Materials / Purchase and Department Notes</caption>
+          <thead>
+            <tr>
+              <th scope="col" rowspan="3" class="narrow">Item No</th>
+              <th scope="col" rowspan="3">Part #</th>
+              <th scope="col" rowspan="3">Part Description</th>
+              <th scope="col" rowspan="3" class="narrow">Rev</th>
+              <th scope="col" rowspan="3" class="narrow">Qty in Nos</th>
+
+              <!-- Large group headings -->
+              <th scope="col" colspan="10" class="group-heading ped">PED Review Requirements (Engineering / Manufacturing / Materials / Purchase)</th>
+
+              <th scope="col" colspan="7" class="group-heading dept">PED Dept Notes (Special Process / Welding / Assembly / Quality / Painting / Customer Service / Commercial)</th>
+
+              <th scope="col" rowspan="3" class="narrow">Remarks</th>
+              <th scope="col" rowspan="3" class="actions-col">Actions</th>
+            </tr>
+
+            <tr>
+              <th scope="col" colspan="7" class="group">Engineering</th>
+              <th scope="col" colspan="1" class="group">Manufacturing</th>
+              <th scope="col" colspan="1" class="group">Materials / Planning</th>
+              <th scope="col" colspan="1" class="group">Purchase</th>
+
+              <th scope="col">Special Process</th>
+              <th scope="col">Welding</th>
+              <th scope="col">Assembly &amp; Testing</th>
+              <th scope="col">Quality Control / Assurance</th>
+              <th scope="col">Painting / Despatch</th>
+              <th scope="col">Customer Service &amp; Sales</th>
+              <th scope="col">Commercial</th>
+            </tr>
+
+            <tr>
+              <!-- Engineering (7) -->
+              <th scope="col">Is Bill of Material Provided for Pressure Equipment</th>
+              <th scope="col">Is applicable DBI / Drawing / Specification are Provided for Pressure Equipment</th>
+              <th scope="col">Is CE Marking Requirements applicable for this Pressure Equipment</th>
+              <th scope="col">Is this Pressure Equipment Group exists in latest PED Certificate</th>
+              <th scope="col">Whether Essential Health &amp; Safety Requirements are require to Capture</th>
+              <th scope="col">Whether Conformity Assessment Module H (Full QA) required? If not, specify</th>
+              <th scope="col">Is any Additional Details Required from Customer</th>
+
+              <!-- Manufacturing (1) -->
+              <th scope="col">Please Note if any Requirement / Remarks (Mfg)</th>
+
+              <!-- Materials / Planning (1) -->
+              <th scope="col">Please Note if any Requirement / Remarks (Mat/Plan)</th>
+
+              <!-- Purchase (1) -->
+              <th scope="col">Is PED Required for Raw Material Supplier</th>
+
+              <!-- Dept notes detail labels (7) -->
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+              <th scope="col">Please Note if any Requirement / Remarks</th>
+            </tr>
+          </thead>
+
+          <tbody id="tbody-ped">
+            <!-- rows generated dynamically by PED_script.js -->
+          </tbody>
+        </table>
+      </section>
+
+            <!-- Updated sign-board (table-based) with Checkboxes -->
+      <section class="sign-block">
+        <div class="table-wrap sign-board-wrap">
+          <table class="sign-board" aria-label="Signatures">
+            <thead>
+              <tr>
+                <th scope="col">Engineering</th>
+                <th scope="col">Manufacturing</th>
+                <th scope="col">Materials / Planning</th>
+                <th scope="col">Purchase</th>
+                <th scope="col">Special Process</th>
+                <th scope="col">Welding</th>
+                <th scope="col">Assembly &amp; Testing</th>
+                <th scope="col">Quality Control / Assurance</th>
+                <th scope="col">Painting / Despatch</th>
+                <th scope="col">Customer Service and Sales</th>
+                <th scope="col">Commercial</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <!-- Signature Lines -->
+              <tr class="sig-line-row">
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+                <td><div class="sig-line" aria-hidden="true"></div></td>
+              </tr>
+
+              <!-- Signature Names & Checkboxes -->
+              <tr class="sig-name-row">
+                <!-- 1. Engineering -->
+                <td data-dept-sign="engineering">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="engineering">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Ilyas Khan N - DM</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 2. Manufacturing -->
+                <td data-dept-sign="manufacturing">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="manufacturing">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Mukesh J - Manager</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 3. Materials / Planning -->
+                <td data-dept-sign="materials">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="materials">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Gowri Shankar R P - AM</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 4. Purchase -->
+                <td data-dept-sign="purchase">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="purchase">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Vijayakumar M - DM</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 5. Special Process -->
+                <td data-dept-sign="special-process">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="special-process">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Ragupathi A - DM</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 6. Welding -->
+                <td data-dept-sign="welding">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="welding">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Gokul Dev G - Welding Engineer</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 7. Assembly & Testing -->
+                <td data-dept-sign="assembly">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="assembly">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Mohammed Siddik N - Manager</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 8. Quality Control / Assurance -->
+                <td data-dept-sign="quality">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="quality">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Sathish V - Engineer</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 9. Painting / Despatch -->
+                <td data-dept-sign="painting">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="painting">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Senthil Kumar V - AM</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 10. Customer Service and Sales -->
+                <td data-dept-sign="customer-service">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="customer-service">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Indumathi A - Manager</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <!-- 11. Commercial -->
+                <td data-dept-sign="commercial">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="commercial">
+                    <span>Verified</span>
+                  </label>
+                  <div class="sig-label">Name &amp; Designation:</div>
+                  <div class="sig-name"><span contenteditable>Puvaneswari S - AM</span></div>
+                  <div class="dept-signed-status" style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    <section class="amend">
+      <div><strong>Amendment Details:</strong></div>
+      <div style="margin-top:8px">
+        <textarea id="amendmentDetailsText" class="amendment-field" placeholder="Enter Amendment Details here..." rows="3"></textarea>
+      </div>
+      <div class="note bordered" style="margin-top:12px">
+        <strong>Note:</strong> Please put -/ ✓ / NA / -" / Applicable / ✓ - Not required / NA - Not Applicable / wherever applicable. Attach separate sheets if required. Highlight for Nile Part # / New Product. Product Specific Requirement (PSR) as per AR IA Latest Edition. Equipment Specific Requirement (ESR) as per Pressure Equipment Directive 2014/68/EU. Any new requirement to be communicated to relevant personnel through Work Orders. Packing Requirements to be done as per ISPM-15 Standard. Refer CSE/006 - Review of Requirements for Contract Review Check List for Enquiry /Regular / New Product.
+      </div>
+    </section>
+
+    <section class="comments-section" style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">
+      <h3 style="margin-top: 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;">Comments (Cross-Department Communication)</h3>
+
+      <div id="commentsContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;"></div>
+
+      <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
+        <label for="newComment" style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">Add Your Comment:</label>
+        <textarea id="newComment" rows="4" placeholder="Type your comment here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: Arial, sans-serif; font-size: 14px; resize: vertical;"></textarea>
+        <button id="submitComment" style="margin-top: 10px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">Submit Comment</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="PED_script.js"></script>
+</body>
+</html>

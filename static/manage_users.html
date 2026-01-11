@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Manage Users — GTN ENGINEERING (INDIA) LIMITED</title>
+
+  <style>
+    :root{
+      --bg: #f3f9fc;
+      --card: #ffffff;
+      --accent: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 12px 30px rgba(18,48,80,0.07);
+      --max-width: 1920px;
+      --pad: 28px;
+      --field-h: 44px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#eaf7ff 0%, #d8eef8 100%);
+      color:#12202b;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:var(--pad);
+      display:flex;
+      justify-content:center;
+    }
+
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+      padding:18px;
+    }
+
+    header.top{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1 1 auto;
+    }
+
+    .brand .logo img{
+      height:64px;
+      width:auto;
+      display:block;
+      border-radius:8px;
+      box-shadow: 0 8px 18px rgba(12,48,88,0.06);
+      background: white;
+      padding:8px;
+    }
+
+    .titles{ display:flex; flex-direction:column; gap:6px; }
+    .company{ font-weight:700; font-size:16px; color:#0f2a44; }
+    .ims{ font-size:12px; color:var(--accent); text-transform:uppercase; font-weight:600; }
+    .page{ font-size:13px; color:var(--muted); }
+
+    .actions-top{ display:flex; gap:8px; align-items:center; }
+
+    /* Sections */
+    .add-user, .user-list {
+      background: var(--card);
+      border-radius:12px;
+      padding:18px;
+      box-shadow: var(--shadow);
+      border:1px solid rgba(10,30,60,0.03);
+      margin-top:12px;
+    }
+
+    h4{ margin:0 0 12px 0; font-size:16px; color:#0f2a44; }
+
+    form.grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:12px 18px;
+      align-items:center;
+    }
+
+    label{ font-size:13px; color:#0f1724; display:block; margin-bottom:6px; }
+    input[type="text"], input[type="email"], input[type="password"], select {
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(10,30,60,0.06);
+      height:var(--field-h);
+      font-size:14px;
+      background:white;
+    }
+
+    .chk-label{ display:block; margin-top:6px; font-size:13px; }
+
+    .row-actions{
+      grid-column: 1 / -1;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      margin-top:8px;
+    }
+
+    .btn{
+      border:0;
+      padding:10px 14px;
+      border-radius:8px;
+      background: #f1f5f9;
+      cursor:pointer;
+      font-weight:600;
+      color:#0f1724;
+      box-shadow: 0 6px 16px rgba(12,48,88,0.04);
+    }
+    .btn.primary{ background: linear-gradient(180deg,var(--accent), var(--accent-2)); color:white; box-shadow:0 10px 26px rgba(46,160,255,0.15); }
+    .btn.danger{ background:#ef4444; color:#fff; }
+    .btn.small{ padding:6px 8px; font-size:13px; border-radius:6px; }
+
+    .user-list .user-card{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      padding:12px;
+      border-radius:10px;
+      background:#fff;
+      border:1px solid rgba(10,30,60,0.03);
+      margin-bottom:10px;
+    }
+    .user-meta .name{ font-weight:700; font-size:15px; }
+    .user-meta .muted{ font-weight:500; color:var(--muted); margin-left:8px; font-size:13px; }
+    .user-meta .dept{ font-size:13px; color:var(--muted); margin-top:6px; }
+    .badge{ background: #0b5ed7; color:white; padding:4px 8px; border-radius:999px; font-size:12px; margin-left:8px; }
+    .badge.lead{ background:#16a34a; }
+
+    .empty{ color:var(--muted); text-align:center; padding:12px; }
+
+    .status-message{ margin-top:8px; font-size:13px; min-height:20px; color:var(--muted); }
+    .status-message.success{ color:#065f46; }
+    .status-message.error{ color:#b91c1c; }
+
+    /* responsive */
+    @media (max-width:1100px){
+      form.grid{ grid-template-columns: 1fr; }
+      .row-actions{ justify-content:stretch; flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+
+    <header class="top" role="banner">
+      <div class="brand" aria-hidden="false">
+        <div class="logo">
+          <img src="/attached_assets/GTN_LOGO.png" alt="GTN Logo">
+        </div>
+        <div class="titles">
+          <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+          <div class="ims">INTEGRATED MANAGEMENT SYSTEM RECORDS</div>
+          <div class="page">Manage Users</div>
+        </div>
+      </div>
+
+      <div class="actions-top">
+        <button id="backBtn" class="btn">← Back to Dashboard</button>
+      </div>
+    </header>
+
+    <section class="add-user" aria-labelledby="formTitle">
+      <h4 id="formTitle">Create User</h4>
+
+      <form id="userForm" class="grid" autocomplete="off" novalidate>
+        <input type="hidden" id="editUserId" value="" />
+
+        <div>
+          <label for="username">Username</label>
+          <input id="username" type="text" required />
+        </div>
+
+        <div>
+          <label for="email">Email ID</label>
+          <input id="email" type="email" />
+        </div>
+
+        <div>
+          <label for="department">Department</label>
+          <select id="department" required>
+            <option value="">Select Department</option>
+            <option value="it">IT</option>
+            <option value="css">CSS (Customer Sales and Service)</option>
+            <option value="engineering">Engineering</option>
+            <option value="manufacturing">Manufacturing</option>
+            <option value="materials">Materials / Planning</option>
+            <option value="purchase">Purchase</option>
+            <option value="special-process">Special Process</option>
+            <option value="welding">Welding</option>
+            <option value="assembly">Assembly & Testing</option>
+            <option value="quality">Quality</option>
+            <option value="painting">Painting / Despatch</option>
+            <option value="customer-service">Customer Service & Sales</option>
+            <option value="commercial">Commercial</option>
+            <option value="technical-operations">Technical & Operations</option>
+            <option value="operations">Operations</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="name">Name</label>
+          <input id="name" type="text" required />
+        </div>
+
+        <div>
+          <label for="password" id="passwordLabel">Password</label>
+          <input id="password" type="password" required />
+        </div>
+
+        <div>
+          <label for="isAdmin" class="chk-label">Admin (Full Access)</label>
+          <input id="isAdmin" type="checkbox" />
+        </div>
+
+        <div>
+          <label for="leadFormAccess" class="chk-label">LEAD Form Access</label>
+          <input id="leadFormAccess" type="checkbox" />
+        </div>
+
+        <div class="row-actions">
+          <button type="submit" class="btn primary" id="submitBtn">Add User</button>
+          <button type="button" class="btn" id="cancelBtn" style="display:none;">Cancel</button>
+        </div>
+
+        <div style="grid-column:1 / -1;">
+          <div id="formStatus" class="status-message" aria-live="polite"></div>
+        </div>
+      </form>
+    </section>
+
+    <section class="user-list" aria-labelledby="listTitle">
+      <h4 id="listTitle">Existing Users</h4>
+      <div id="userContainer" role="list"></div>
+      <div id="noUser" class="empty">No users added yet.</div>
+    </section>
+
+  </div>
+
+  <script>
+  (function(){
+    // Elements & state
+    const backBtn = document.getElementById('backBtn');
+    const form = document.getElementById('userForm');
+    const userContainer = document.getElementById('userContainer');
+    const noUser = document.getElementById('noUser');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const editUserId = document.getElementById('editUserId');
+    const passwordLabel = document.getElementById('passwordLabel');
+    const passwordInput = document.getElementById('password');
+    const usernameInput = document.getElementById('username');
+    const formStatus = document.getElementById('formStatus');
+
+    let users = [];
+    let editingUser = null;
+
+    // Utility
+    function showStatus(msg, type) {
+      formStatus.textContent = msg || '';
+      formStatus.className = 'status-message ' + ((type === 'success') ? 'success' : (type === 'error') ? 'error' : '');
+      if (msg) setTimeout(()=> { formStatus.textContent=''; formStatus.className='status-message'; }, 8000);
+    }
+
+    // Read error response reliably (JSON or text/HTML)
+    async function readError(res) {
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json')) {
+        const data = await res.json().catch(() => ({}));
+        return data.error || JSON.stringify(data);
+      }
+      const text = await res.text().catch(() => '');
+      if (!text) return `HTTP ${res.status}`;
+      // If HTML, show a short snippet so it fits in UI
+      return text.replace(/\s+/g,' ').slice(0, 500);
+    }
+
+    // Check session + admin on server-side
+    async function checkAccess() {
+      try {
+        const res = await fetch('/api/session', { credentials: 'same-origin' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.loggedIn && data.user && data.user.isAdmin) {
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error('Session check failed', err);
+      }
+      alert('Access restricted to Admins or session expired.');
+      window.location.href = 'master.html';
+      return false;
+    }
+
+    // Load users from API
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users', { credentials: 'same-origin' });
+        if (res.ok) {
+          users = await res.json();
+          renderUsers();
+        } else {
+          const msg = await readError(res);
+          console.error('Load users error:', msg);
+          showStatus(msg || 'Failed to load users', 'error');
+        }
+      } catch (err) {
+        console.error('Failed to load users', err);
+        showStatus('Failed to load users', 'error');
+      }
+    }
+
+    // Render list
+    function renderUsers() {
+      userContainer.innerHTML = '';
+      if (!Array.isArray(users) || users.length === 0) {
+        noUser.style.display = 'block';
+        return;
+      }
+      noUser.style.display = 'none';
+      users.forEach(u => {
+        const item = document.createElement('div');
+        item.className = 'user-card';
+        item.innerHTML = `
+          <div class="user-meta">
+            <div class="name">${escapeHtml(u.name)} <span class="muted">(${escapeHtml(u.username)})</span>
+              ${u.isAdmin ? '<span class="badge">Admin</span>' : ''} ${u.leadFormAccess ? '<span class="badge lead">LEAD</span>' : ''}
+            </div>
+            <div class="dept">Department: ${escapeHtml(String(u.department || '')).toUpperCase()}</div>
+            ${u.email ? `<div class="dept">Email: ${escapeHtml(u.email)}</div>` : ''}
+          </div>
+          <div class="user-actions">
+            <button class="btn small" data-act="edit" data-id="${u.id}">Edit</button>
+            <button class="btn small danger" data-act="del" data-id="${u.id}">Delete</button>
+          </div>
+        `;
+        userContainer.appendChild(item);
+      });
+    }
+
+    // Escape
+    function escapeHtml(text){
+      const d = document.createElement('div');
+      d.textContent = text || '';
+      return d.innerHTML;
+    }
+
+    // Reset form
+    function resetForm() {
+      editingUser = null;
+      editUserId.value = '';
+      formTitle.textContent = 'Create User';
+      submitBtn.textContent = 'Add User';
+      cancelBtn.style.display = 'none';
+      passwordLabel.textContent = 'Password';
+      passwordInput.required = true;
+      usernameInput.disabled = false;
+      form.reset();
+      showStatus('', '');
+    }
+
+    // Edit user
+    function startEdit(userId) {
+      const u = users.find(x => x.id === userId);
+      if (!u) return;
+      editingUser = u;
+      editUserId.value = u.id;
+      formTitle.textContent = 'Edit User';
+      submitBtn.textContent = 'Update User';
+      cancelBtn.style.display = 'inline-block';
+      passwordLabel.textContent = 'Password (leave blank to keep current)';
+      passwordInput.required = false;
+      usernameInput.disabled = true;
+
+      document.getElementById('username').value = u.username || '';
+      document.getElementById('email').value = u.email || '';
+      document.getElementById('name').value = u.name || '';
+      document.getElementById('department').value = u.department || '';
+      document.getElementById('password').value = '';
+      document.getElementById('isAdmin').checked = !!u.isAdmin;
+      document.getElementById('leadFormAccess').checked = !!u.leadFormAccess;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Submit form (create or update)
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const department = document.getElementById('department').value;
+      const name = document.getElementById('name').value.trim();
+      const password = document.getElementById('password').value;
+      const isAdmin = document.getElementById('isAdmin').checked;
+      const leadFormAccess = document.getElementById('leadFormAccess').checked;
+
+      if (!department || !name) {
+        showStatus('Please fill required fields', 'error');
+        return;
+      }
+
+      if (!editingUser && !username) {
+        showStatus('Username is required', 'error');
+        return;
+      }
+
+      if (!editingUser && !password) {
+        showStatus('Password is required for new users', 'error');
+        return;
+      }
+
+      try {
+        let res;
+        if (editingUser) {
+          const payload = { name, department, email, isAdmin, leadFormAccess };
+          if (password) payload.password = password;
+          res = await fetch(`/api/users/${editUserId.value}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+          });
+        } else {
+          const payload = { username, email, department, name, password, isAdmin, leadFormAccess };
+          res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (res.ok) {
+          await res.json().catch(()=> ({}));
+          resetForm();
+          await loadUsers();
+          showStatus(editingUser ? 'User updated' : 'User created', 'success');
+        } else {
+          const msg = await readError(res);
+          showStatus(msg || 'Operation failed', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showStatus(String(err?.message || err || 'Operation failed'), 'error');
+      }
+    });
+
+    // Click handlers for edit/delete
+    userContainer.addEventListener('click', async (e) => {
+      const act = e.target?.dataset?.act;
+      const id = parseInt(e.target?.dataset?.id || '-1', 10);
+      if (act === 'edit' && id > 0) {
+        startEdit(id);
+      } else if (act === 'del' && id > 0) {
+        if (!confirm('Delete this user?')) return;
+        try {
+          const res = await fetch(`/api/users/${id}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+          });
+          if (res.ok) {
+            await res.json().catch(()=> ({}));
+            resetForm();
+            await loadUsers();
+            showStatus('User deleted', 'success');
+          } else {
+            const msg = await readError(res);
+            showStatus(msg || 'Failed to delete user', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showStatus('Failed to delete user', 'error');
+        }
+      }
+    });
+
+    // Cancel edit
+    cancelBtn.addEventListener('click', resetForm);
+
+    // Back to master
+    backBtn.addEventListener('click', () => window.location.href = 'master.html');
+
+    // Init
+    (async function init(){
+      const allowed = await checkAccess();
+      if (!allowed) return;
+      await loadUsers();
+    })();
+
+  })();
+  </script>
+</body>
+</html>

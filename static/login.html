@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contract Review Login — GTN ENGINEERING (INDIA) LIMITED</title>
+
+  <style>
+    :root{
+      --bg-1: #eaf7ff;
+      --bg-2: #d8eef8;
+      --card-bg: #ffffff;
+      --accent-1: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius-lg: 14px;
+      --shadow-1: 0 16px 40px rgba(20,60,100,0.08);
+      --container-width: 460px;
+      --input-height: 46px;
+      --text: #102031;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:36px;
+    }
+
+    .login-card{
+      width:100%;
+      max-width:var(--container-width);
+      background:var(--card-bg);
+      border-radius:var(--radius-lg);
+      padding:34px;
+      box-shadow:var(--shadow-1);
+      text-align:center;
+      border: 1px solid rgba(20,40,80,0.04);
+    }
+
+    .logo-wrap{ display:flex; align-items:center; justify-content:center; margin-top:-12px; margin-bottom:6px; }
+    .logo-wrap img{ width:94px; height:auto; object-fit:contain; display:block; }
+
+    .brand-title{ font-weight:700; font-size:14px; margin-top:8px; color:#0f2a44; }
+    .brand-sub{ font-size:12px; color:var(--accent-1); margin-top:6px; margin-bottom:18px; }
+
+    h1 { margin:0 0 14px 0; font-size:20px; font-weight:700; color:#162738; }
+
+    form { text-align:left; margin-top:6px; }
+    .field { margin-bottom:14px; }
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
+    input[type="text"], input[type="password"]{
+      width:100%; height:var(--input-height); border-radius:8px;
+      border:1px solid rgba(20,120,200,0.08); padding:10px 14px; font-size:14px; background:#fff;
+      transition: box-shadow .15s ease, border-color .15s ease; outline:none;
+    }
+    input::placeholder{ color: #aebecb; }
+    input:focus{ box-shadow: 0 8px 22px rgba(46,160,255,0.12); border-color: var(--accent-1); }
+
+    .actions{ display:flex; align-items:center; justify-content:flex-start; gap:12px; margin-top:6px; }
+    .btn{ padding:10px 18px; height:42px; border-radius:8px; border:0; cursor:pointer; font-weight:700; font-size:14px; color:white;
+      background: linear-gradient(180deg,var(--accent-1), var(--accent-2)); box-shadow: 0 8px 18px rgba(46,160,255,0.18);
+    }
+    .btn[disabled]{ opacity:0.76; cursor:not-allowed; box-shadow:none; }
+
+    .hint{ margin-top:16px; font-size:13px; color:var(--muted); }
+
+    .error{
+      margin-top:12px; background: linear-gradient(180deg, rgba(255,236,236,1), rgba(255,245,245,1));
+      border-left:4px solid rgba(220,53,69,0.9); padding:12px 14px; border-radius:8px; color:#8a1f2e; font-size:13px; display:none;
+    }
+
+    @media (max-width:520px){
+      body{padding:18px}
+      .login-card{padding:20px}
+      .logo-wrap img{width:78px}
+      h1{font-size:18px}
+    }
+  </style>
+</head>
+<body>
+  <main class="login-card" role="main" aria-labelledby="login-title">
+    <div class="logo-wrap" aria-hidden="false">
+      <!-- logo served from project/attached_assets/GTN_LOGO.png -->
+      <img src="/attached_assets/GTN_LOGO.png" alt="GTN Logo">
+    </div>
+
+    <div style="text-align:center;">
+      <div class="brand-title">GTN ENGINEERING INDIA LTD</div>
+      <b><div class="brand-sub">CONTRACT REVIEW</div></b>
+      <h1 id="login-title">Login</h1>
+    </div>
+
+    <form id="loginForm" autocomplete="on" novalidate>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter username" required>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter password" required>
+      </div>
+
+      <div class="actions">
+        <button id="loginBtn" type="submit" class="btn" aria-live="polite">Login</button>
+      </div>
+
+      <div id="error" class="error" role="alert" aria-atomic="true"></div>
+<!---->
+     
+    </form>
+  </main>
+
+  <script>
+  (function(){
+    const form = document.getElementById('loginForm');
+    const errorDiv = document.getElementById('error');
+    const loginBtn = document.getElementById('loginBtn');
+
+    function showError(msg){
+      if(!msg){ errorDiv.style.display='none'; errorDiv.textContent=''; return; }
+      errorDiv.style.display='block';
+      errorDiv.textContent = msg;
+    }
+
+    function setLoading(isLoading){
+      loginBtn.disabled = isLoading;
+      loginBtn.textContent = isLoading ? 'Signing in…' : 'Login';
+      if(isLoading) loginBtn.setAttribute('aria-busy','true');
+      else loginBtn.removeAttribute('aria-busy');
+    }
+
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      showError('');
+      setLoading(true);
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if(!username || !password){
+        showError('Please enter username and password.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        let data;
+        try { data = await res.json(); } catch(e) { data = {}; }
+
+        if(res.ok && data.success){
+          try {
+            localStorage.setItem('username', data.user.username || '');
+            localStorage.setItem('userName', data.user.name || '');
+            localStorage.setItem('userDepartment', data.user.department || '');
+            localStorage.setItem('userIsAdmin', data.user.isAdmin ? 'true' : 'false');
+          } catch(e){ /* ignore */ }
+
+          // redirect to master (file: static/master.html)
+          window.location.href = '/master.html';
+          return;
+        } else {
+          const msg = (data && data.error) ? data.error : 'Invalid username or password.';
+          showError(msg);
+        }
+      } catch(err){
+        console.error('Login error', err);
+        showError('Connection error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    document.getElementById('password').addEventListener('keydown', (ev) => {
+      if(ev.key === 'Enter') form.requestSubmit();
+    });
+  })();
+  </script>
+</body>
+</html>

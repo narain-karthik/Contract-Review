@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lead Time Calculation Sheet — GTN ENGINEERING (INDIA) LIMITED</title>
+
+  <style>
+    :root{
+      --bg: #f3f9fc;
+      --card: #ffffff;
+      --accent: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 12px 30px rgba(18,48,80,0.07);
+      --max-width: 1920px;
+      --pad: 28px;
+      --field-h: 44px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#eaf7ff 0%, #d8eef8 100%);
+      color:#12202b;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:var(--pad);
+      display:flex;
+      justify-content:center;
+    }
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+      padding:18px;
+    }
+
+    header.top{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      margin-bottom:18px;
+      justify-content:space-between;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1 1 auto;
+    }
+    .brand-logo{
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      background:white;
+      padding:6px;
+      box-shadow: 0 8px 18px rgba(12,48,88,0.06);
+      display:block;
+      object-fit:contain;
+    }
+    .titles { display:flex; flex-direction:column; gap:4px; }
+    .titles .company{ margin:0; font-size:20px; color:#0f2a44; font-weight:700; line-height:1; }
+    .titles .ims{ margin:0; font-size:13px; color: #0077ff; font-weight:600; text-transform:uppercase; letter-spacing:0.6px; }
+    .titles .sheet-title{ margin-top:4px; font-size:15px; color:#0f1724; font-weight:600; }
+
+    .meta{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .meta .meta-box{ display:inline-block; background:var(--card); padding:8px 10px; border-radius:8px; box-shadow: 0 6px 18px rgba(12,48,88,0.04); font-weight:600; height:38px; }
+
+    .doc-info, .table-actions, .table-wrap, .footer-notes, .comments-section {
+      background: var(--card);
+      border-radius:12px;
+      padding:18px;
+      box-shadow: var(--shadow);
+      border:1px solid rgba(10,30,60,0.03);
+      margin-top:12px;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 240px 120px 120px 120px 120px;
+      gap:12px;
+      align-items:center;
+    }
+    label{ font-size:13px; color:#0f1724; display:block; margin-bottom:6px; }
+    .field, .field.small, .meta-box, .cell-input, select {
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(10,30,60,0.06);
+      height:var(--field-h);
+      font-size:14px;
+      background:white;
+    }
+    .field.small{ height:38px; font-size:13px; }
+
+    .table-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .table-actions button{
+      border:0;
+      padding:8px 12px;
+      border-radius:8px;
+      background:#f1f5f9;
+      cursor:pointer;
+      font-weight:600;
+      color:#0f1724;
+      box-shadow:0 6px 16px rgba(12,48,88,0.04);
+    }
+    .table-actions button:first-child{ background: linear-gradient(180deg,var(--accent), var(--accent-2)); color:white; box-shadow:0 10px 26px rgba(46,160,255,0.15); }
+
+    .table-wrap{ overflow:auto; margin-top:12px; }
+    table{ border-collapse:collapse; width:100%; font-size:13px; }
+    th, td{ border:1px solid rgba(10,30,60,0.06); padding:8px; vertical-align:middle; background:white; }
+    thead th{ background: linear-gradient(180deg,#ffffff,#f8fbff); font-weight:700; text-align:left; }
+    .fixed{ width:70px; text-align:center; font-weight:700; }
+    .item-col{ width:70px; }
+    .part-col{ width:140px; }
+    .desc-col{ width:300px; }
+    .rev-col{ width:70px; }
+    .qty-col{ width:90px; }
+    .date-col{ width:160px; }
+    .lead-col{ width:160px; }
+    .remarks-col{ width:260px; }
+    .actions-col{ width:110px; text-align:center; }
+
+    input.cell-input{ padding:8px; border-radius:6px; border:1px solid rgba(10,30,60,0.06); width:100%; }
+    input.cell-date{ padding:6px; border-radius:6px; border:1px solid rgba(10,30,60,0.06); width:100%; height:36px; }
+
+    .date-cell{ display:flex; flex-direction:column; gap:6px; }
+    .date-text{ font-size:13px; color:#6b7280; display:block; padding:4px 6px; background:#f8fafc; border-radius:6px; text-align:center; }
+    .date-text.empty{ color:#bfc9d4; }
+
+    .sig-table{ width:100%; border-collapse:collapse; margin-top:12px; }
+    .sig-label{ font-weight:700; margin-bottom:8px; }
+    .sig-line{ height:2px; background:#cccccc; margin-bottom:8px; width:100%; }
+    .sig-line.short{ width:80%; }
+
+    textarea{ width:100%; padding:10px; border-radius:8px; border:1px solid rgba(10,30,60,0.06); resize:vertical; min-height:80px; }
+
+    @media (max-width:1100px){
+      .row{ grid-template-columns: 1fr; }
+      .table-actions{ flex-direction:column; align-items:stretch; }
+      .desc-col{ width:180px; }
+    }
+
+    @media print {
+      body { padding: 0; background: white; }
+      .table-actions, .comments-section { display: none !important; }
+      thead { display: table-header-group; }
+      .signature-table { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="top">
+      <div class="brand">
+        <img src="attached_assets/GTN_LOGO.png" alt="GTN Logo" class="brand-logo">
+        <div class="titles">
+          <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+          <div class="ims">INTEGRATED MANAGEMENT SYSTEM RECORDS</div>
+          <div class="sheet-title">Lead Time Calculation Sheet</div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div><strong>Record No</strong> <input type="text" id="recordNo" class="meta-box" value="SAL/R01/N" /></div>
+        <div><strong>Date</strong> <input type="text" id="recordDate" class="meta-box" value="19.05.2025" /></div>
+      </div>
+    </header>
+
+    <section class="doc-info">
+      <div class="left">
+        <div class="row">
+          <div>
+            <label for="customerSelect">Customer Name:</label>
+            <select id="customerSelect" class="field" aria-label="Customer name">
+              <option value="TFMC SINGAPORE" selected>TFMC SINGAPORE</option>
+              <option value="TFMC SAUDI ARABIA">TFMC SAUDI ARABIA</option>
+              <option value="TFMC MALAYSIA">TFMC MALAYSIA</option>
+              <option value="TFMC DUBAI">TFMC DUBAI</option>
+              <option value="TFMC HYDERABAD">TFMC HYDERABAD</option>
+              <option value="TFMC INDONESIA">TFMC INDONESIA</option>
+              <option value="TFMC MEXICO">TFMC MEXICO</option>
+              <option value="TFMC ARGENTINA">TFMC ARGENTINA</option>
+              <option value="TFMC BRAZIL">TFMC BRAZIL</option>
+              <option value="TFMC COLOMBIA">TFMC COLOMBIA</option>
+              <option value="TFMC CANADA">TFMC CANADA</option>
+              <option value="TFMC HOUSTON">TFMC HOUSTON</option>
+              <option value="TFMC HOUSTON - KONGSBERG">TFMC HOUSTON - KONGSBERG</option>
+              <option value="TFMC VENEZUELA">TFMC VENEZUELA</option>
+              <option value="TFMC GSP">TFMC GSP</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="small">BID# & Dt :</label>
+            <input id="bidDt" class="field small" value="N/A" />
+          </div>
+
+          <div>
+            <label class="small">PO# / Rev / Dt :</label>
+            <input id="poRevDt" class="field small" value="N/A" />
+          </div>
+
+          <div>
+            <label class="small">CR# / Rev / Dt :</label>
+            <input id="crRevDt" class="field small" value="N/A" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="table-actions">
+      <button id="addItemBtn" type="button" aria-label="Add item">+ Add Item</button>
+      <button id="printBtn" type="button" aria-label="Print or save as PDF">Print / Save as PDF</button>
+      <button id="exportCsv" type="button" aria-label="Export table as CSV">Export CSV</button>
+      <button id="exportTxt" type="button" aria-label="Export table as TXT">Export TXT</button>
+      <button id="resetBtn" type="button" aria-label="Reset table values">Reset Values</button>
+      <small>
+        Customer Required Date and GTN Agreed Date are date fields.
+        GTN Agreed Date auto-calculates as Customer Required Date minus Standard Lead Time (days).
+        <span id="saveStatus" style="color: #28a745; font-weight: bold;"></span>
+      </small>
+    </section>
+
+    <section class="table-wrap">
+      <table id="lead-table" class="lead-table" aria-label="Lead Time Calculation Table">
+        <thead>
+          <tr class="head-top">
+            <th class="item-col">Item No</th>
+            <th class="part-col">Part #</th>
+            <th class="desc-col">Part Description</th>
+            <th class="rev-col">Rev</th>
+            <th class="qty-col">Qty in Nos</th>
+            <th class="date-col">Customer Required Date</th>
+            <th class="lead-col">Standard Lead Time in Days *</th>
+            <th class="date-col">GTN Agreed Date</th>
+            <th class="remarks-col">Remarks (Critical Item/ Loading/Capacity)</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="tbody">
+          <!-- rows created by LEAD_script.js -->
+        </tbody>
+      </table>
+    </section>
+
+    <section class="footer-notes">
+      <div class="remarks-box">
+        <div class="remarks-note">
+          <strong><u>Note:</u></strong> Attach Separate Sheet if required
+        </div>
+        <div class="remarks-general" style="margin-top:8px;">
+          <div class="remarks-label"><strong><u>General Remarks:</u></strong></div>
+          <textarea id="generalRemarksText" rows="6" placeholder="Admin can enter general remarks here..."></textarea>
+        </div>
+      </div>
+
+      <div class="signature-table" style="margin-top:18px;">
+        <table class="sig-table" cellspacing="0" cellpadding="0">
+          <tr>
+
+
+            <td class="prepared-col" style="width:40%; padding:12px; vertical-align:top;">
+              <div class="sig-label">Prepared By<br><span class="small-label">CSS Team:</span></div>
+              <div class="sig-line"></div>
+
+              <!-- NEW: editable only by admin (controlled in JS) -->
+              <input
+                id="preparedBy"
+                type="text"
+                class="field small"
+                placeholder="Enter name..."
+                style="margin-top:8px;"
+              />
+            </td>
+
+
+            <td class="verified-col" style="width:60%; padding:12px;">
+              <div class="sig-verified-label" style="font-weight:700; margin-bottom:8px;">Verified and Approved By:</div>
+
+              <table class="approved-table" style="width:100%; border-collapse:collapse;" cellspacing="0" cellpadding="0">
+
+              <tr class="approver-names">
+                <td class="approver-cell">Indumathi A</td>
+                <td class="approver-cell">Raghu Raman C</td>
+                <td class="approver-cell">Gowthaman R</td>
+                <td class="approver-cell">Ashok Kumar V</td>
+                <td class="approver-cell">Adaikkalasamy . S</td>
+              </tr>
+
+              <tr class="approver-roles" style="font-size:12px; color:#555;">
+                <td class="approver-role">Manager - CSS</td>
+                <td class="approver-role">Manager - Materials and Planning</td>
+                <td class="approver-role">VP - Technical &amp; Operations</td>
+                <td class="approver-role">GM - Quality Assurance</td>
+                <td class="approver-role">President - Operations</td>
+              </tr>
+
+              <!-- Checkbox + Signed status (same style as you sent) -->
+              <tr class="approver-lines">
+                <td class="approver-line" style="padding:8px; vertical-align:top;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="css">
+                    <span>Verified</span>
+                  </label>
+                  <div class="dept-signed-status" data-dept="css"
+                       style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <td class="approver-line" style="padding:8px; vertical-align:top;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="materials">
+                    <span>Verified</span>
+                  </label>
+                  <div class="dept-signed-status" data-dept="materials"
+                       style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <td class="approver-line" style="padding:8px; vertical-align:top;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="technical-operations">
+                    <span>Verified</span>
+                  </label>
+                  <div class="dept-signed-status" data-dept="technical-operations"
+                       style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <td class="approver-line" style="padding:8px; vertical-align:top;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="quality">
+                    <span>Verified</span>
+                  </label>
+                  <div class="dept-signed-status" data-dept="quality"
+                       style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+
+                <td class="approver-line" style="padding:8px; vertical-align:top;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:6px;">
+                    <input type="checkbox" class="dept-sign-checkbox" data-dept="operations">
+                    <span>Verified</span>
+                  </label>
+                  <div class="dept-signed-status" data-dept="operations"
+                       style="display:none;color:#15803d;font-size:12px;margin-top:4px;">✔ Signed</div>
+                </td>
+              </tr>
+</table>
+          </tr>
+
+          <tr>
+            <td class="prepared-name-cell" style="padding:12px;">
+              <div class="label small">Name:</div>
+            </td>
+            <td class="verified-empty-cell" style="padding:12px;"></td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <section class="comments-section" style="margin-top: 30px;">
+      <h3 style="margin-top: 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;">Comments (Cross-Department Communication)</h3>
+
+      <div id="commentsContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;"></div>
+
+      <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
+        <label for="newComment" style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">Add Your Comment:</label>
+        <textarea id="newComment" rows="4" placeholder="Type your comment here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: Arial, sans-serif; font-size: 14px; resize: vertical;"></textarea>
+        <button id="submitComment" style="margin-top: 10px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">Submit Comment</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="LEAD_script.js"></script>
+</body>
+</html>

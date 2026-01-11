@@ -1,0 +1,362 @@
+CR 
+
+Record No : Z1
+Date : Z2
+
+Customer Name        :	C3
+BID#./Dt: E3
+PO#./Rev/Dt: O3
+CR #./Rev/ Dt:	Y3
+
+Item.No : A8
+Part # : B8
+Part Description : C8
+Rev : D8
+Qty in Nos : E8
+
+(Engineering )												
+
+Is GTN Design to be followed	(F8)
+Feasibility of Design & Development	(G8)
+Is Design exists already	(H8)
+If Design not exists, Is GTN can able to develop against Customer requirements	(I8)
+Is API 6A Equipment (J8)	
+Is API 6A Monogram required	(K8)
+Is API 6A License available for this Equipment against PSL	(L8)
+Is involvement of customers in the design and development process required	(M8)
+Is all customer Specific requirements captured	(N8)
+Is Customer Design to be followed	(O8)
+Feasibility of Development (P8)
+Is complete documents received from Customer (Q8)	
+Is any additional detail required from customer (R8)
+
+(Manufacturing )		
+				
+Is the  Manufacturing Feasible	(S8)
+Is the Tools / Jigs / Fixtures  Available	(T8)
+Is the surface finish mentioned is achievable	(U8)
+Is the part size will fit into our inhouse/our existing supplier machines	(V8)
+Is any special tool required	(W8)
+Is any special fixture required	(X8)
+Is any special machining process like Honing, Lapping, deep hole drilling etc required	(Y8)
+Is all the profile/geometry feasible by Machining methods (Z8)
+							
+CR 2
+
+Record No : AB1
+Date : AB2
+
+Customer Name        :	C3
+BID#./Dt: E3
+PO#./Rev/Dt: R3
+CR #./Rev/ Dt:	AB3
+
+Item.No : A8
+Part # : B8
+Part Description : C8
+Rev : D8
+Qty in Nos : E8
+												
+
+( Materials / Planning	)
+
+Is Raw Material / Bought Out Available (F8)
+Feasibility of material as per  Part Report (G8)
+Machining (H8)
+Special Process (I8)
+Assy & Testing (J8)
+Machining (K8)
+Special Process (L8)
+Availability of SAP- Bill of Material and Routing (M8)
+
+( Purchase )
+				
+Is the Minimum Order Quantity  Sufficient (N8)	
+Is any Imported Items required	(O8)
+Is the existing supplier's capacity available (P8)	
+Is tooling  / Patterns available at Supplier end	(Q8)
+Is there any Purchase/Outsource activity with required New Supplier Qualification (R8)
+
+( Special Process	)	
+Can we meet all the Special Process requirements	(S8)
+Is the parts requires outsourcing process	(T8)
+Is New process qualification required  (U8)
+
+(Welding)	
+
+Is the part requires welding / cladding / brazing	(V8)
+Is outsourcing required	 (W8)
+Is New Welding Specification Procedure (WPS) / Procedure Qualification Record (PQR) / We
+
+(Assembly & Testing	)
+
+Is Assembly and Testing  Procedures available	(Y8)
+Is all the Testing  Fixtures / Assembly  Tools available	(Z8)
+Is there any special consumables  and grease required	(AA8)
+Is there any Special Notes mentioned in Part Report / Drawing  (AB8)
+
+CR 3
+
+Record No : Z1
+Date : Z2
+
+Customer Name        :	C3
+BID#./Dt: E3
+PO#./Rev/Dt: O3
+CR #./Rev/ Dt:	Y3
+
+Item.No : A8
+Part # : B8
+Part Description : C8
+Rev : D8
+Qty in Nos : E8
+			
+(Quality Control / Assurance)
+
+Is Ultrasonic Test (UT) Inspection Required	 (F8)
+Is Magnetic Particle Inspection (MPI) Required	(G8)
+Is Liquid Penentrant Inspection (LPI) Required	(H8)
+Is Inspection required in ASNT or ISO 9712	(I8)
+Is Marking Instructions are Adequate	(J8)
+Is marking feasible at respective area	(K8)
+Is dimension inspection feasible	(L8)
+Is Measuring Instruments and Gauges are available (M8)	
+Is Manufacturing Information Requirement (MIR) / Supplier Documentation Requirement (SDR)  are applicable (N8)	
+Quality Documentation Requirement (O8)
+									
+
+( Painting / Despatch )
+
+Can we meet all the painting requirements	(P8)
+Is the part needs special painting (Q8)	
+Can we meet all Boxing Requirments 	(R8)
+Is any special rust prevention / protection covers required	 (S8)
+Is any Special Marking / stickering / stenciling required (T8 )
+
+Customer Service and Sales			
+
+Is the Part # available in SAP	(U8)
+Is Price Available	(V8)
+Is Price to Be Worked Out (X8)	
+Is Manufacturing Information Requirement (MIR) / Supplier Documentation Requirement (SDR) specified (X8)
+
+Commercial
+
+Legal Requirements (Y8)
+
+
+
+PED 1
+
+Record No : W1
+Date : 	W2
+
+Customer Name        :C3
+BID#./Dt: E3
+PO#./Rev/Dt: L3
+CR #./Rev/ Dt: V3
+
+Item.No : A7
+Part # : B7
+Part Description : C7
+Rev : D7
+Qty in Nos : E7
+
+( Engineering )						
+
+Is Bill of Material Provided for Pressure Equipment	(F7)
+Is applicable DBI / Drawing / Specification are Provided for Pressure Equipment	(G7)
+Is CE Marking Requirements applicable for this Pressure Equipment	(H7)
+Is this Pressure Equipment Group exists in latest PED Certificate	(I7)
+Whether Essential Health & Safety Requirements are require to Capture	(J7)
+Wheather the Pressure Equipment require Conformity Assessment Module H: Conformity based on Full Quality Assurance. If not, Specify the require Conformity Assessment (K7)	
+Is any Additional Details Required from Customer (L7)
+
+(Manufacturing )	
+
+Please Note if any Requirement / Remarks (M7)
+
+Materials / Planning
+			
+Please Note if any Requirement / Remarks (O7)
+
+Purchase		
+
+Is PED Required for Raw Material Supplier 	(S7)
+
+PED 2
+
+Record No : AC1
+Date : 	AC2
+
+Customer Name        :C3
+BID#./Dt: E3
+PO#./Rev/Dt: M3
+CR #./Rev/ Dt: AA3
+
+Item.No : A7
+Part # : B7
+Part Description : C7
+Rev : D7
+Qty in Nos : E7	
+
+(Special Process)
+
+Please Note if any Requirement / Remarks (F7)
+
+(Welding	)
+
+Please Note if any Requirement / Remarks (K7)
+
+(Assembly & Testing	)
+
+Please Note if any Requirement / Remarks (M7)
+
+( Quality Control / Assurance	)
+
+Please Note if any Requirement / Remarks (O7)
+
+(Painting / Despatch	)		
+
+Please Note if any Requirement / Remarks (T7)
+
+(Customer Service & Sales)			
+
+Please Note if any Requirement / Remarks (X7)
+
+(Commercial)
+
+Please Note if any Requirement / Remarks (AB7)			
+			
+LEAD FORM
+
+Record No : P1
+Date : P2
+
+Customer Name:	C3
+BID#&Dt : F3
+
+PO#/Rev/Dt: K3
+
+CR#/Rev/Dt: P3
+
+Item.No : A6
+Part #	: B6
+Part Description: 		D6		
+Rev	: J6
+Qty in Nos	: K6
+Customer Required Date	: 	L6
+Standard Lead Time in Days *	: N6
+GTN Agreed Date	: O6
+Remarks(Critical Item/ Loading/Capacity) : P6
+			
+																		
+
+CR
+
+Amendment Details:	C16
+
+CR 2
+
+Amendment Details:	C15
+
+CR3
+
+Amendment Details:	C15
+
+
+PED 1:
+
+Amendment Details:	C19
+
+PED 2 :
+
+Amendment Details:	C19
+
+			
+	
+lead form
+
+General Remarks:A17
+			
+
+
+gpmw ubuu vvsx rsuy - GTN CSS - CR Application ( API KEY)
+
+
+
+
+Comments excel File
+
+Record No		: AB1
+Date	: AB2
+Customer Name        :	C3
+BID#./Dt:F3
+PO#./Rev/Dt:		S3
+CR #./Rev/ Dt: AC3
+
+S.NO : A5
+DEPARTMENT 	: B5
+FORM NAME	: C5
+NAME	: D5
+COMMENTS : 		E5																										
+
+Amendment Details : C26
+
+
+CR 1 , 2 & 3
+Amendment Details :C39
+
+LEAD 
+
+General Remarks: A37
+
+
+
+
+
+
+
+
+
+
+		
+
+
+	
+	
+	
+		
+				
+
+
+		
+
+				
+
+
+
+				
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+		
+
+
+		

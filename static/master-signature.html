@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Master Signature Management — GTN ENGINEERING</title>
+
+  <!-- ===== YOUR EXISTING MASTER STYLE (UNCHANGED) ===== -->
+  <style>
+    :root{
+      --bg: #f3f9fc;
+      --card: #ffffff;
+      --accent: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 12px 30px rgba(18,48,80,0.07);
+      --glass: rgba(255,255,255,0.6);
+      --max-width: 1920px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg,#eaf7ff 0%, #d8eef8 100%);
+      color:#12202b;
+      padding:28px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+    .page-wrap{
+      width:100%;
+      max-width:var(--max-width);
+      margin:0 auto;
+      padding:18px;
+    }
+    .container{
+      width:100%;
+      padding:8px 24px 40px 24px;
+    }
+    header.top{
+      display:flex;
+      align-items:flex-start;
+      gap:18px;
+      margin-bottom:18px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1;
+    }
+    .brand .logo img{
+      height:82px;
+      border-radius:8px;
+      background:#fff;
+      padding:10px;
+      box-shadow:0 8px 18px rgba(12,48,88,0.06);
+    }
+    .titles{ display:flex; flex-direction:column; gap:6px; }
+    .company{ font-weight:700; font-size:18px; }
+    .ims{ font-size:13px; color:var(--accent); font-weight:700; }
+    .page{ font-size:14px; color:var(--muted); }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(10,30,60,0.03);
+      margin-top:16px;
+    }
+
+    .fields-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px 18px;
+      align-items:center;
+    }
+    .field-input, .field-select{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(10,30,60,0.06);
+      height:46px;
+      font-size:15px;
+      background:white;
+    }
+
+    .actions{
+      margin-top:16px;
+      display:flex;
+      gap:10px;
+    }
+    .btn{
+      border:0;
+      padding:10px 14px;
+      border-radius:10px;
+      background:#f1f5f9;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .btn.primary{
+      background:linear-gradient(180deg,var(--accent),var(--accent-2));
+      color:#fff;
+    }
+
+    .sig-preview{
+      max-height:80px;
+      border:1px solid #e5e7eb;
+      padding:6px;
+      background:#fff;
+      border-radius:6px;
+    }
+
+    .sig-item{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:12px;
+      border-radius:10px;
+      border:1px solid rgba(10,30,60,0.05);
+      margin-bottom:10px;
+      background:#fff;
+    }
+
+    @media(max-width:900px){
+      .fields-grid{ grid-template-columns:1fr; }
+      header.top{ flex-direction:column; align-items:center; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="page-wrap">
+  <div class="container">
+
+    <!-- HEADER -->
+    <header class="top">
+      <div class="brand">
+        <div class="logo">
+          <img src="/attached_assets/GTN_LOGO_1762400078631.png"
+               alt="GTN Logo"
+               onerror="this.style.display='none'">
+        </div>
+        <div class="titles">
+          <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+          <div class="ims">CONTRACT REVIEW</div>
+          <div class="page">Master Signature Management</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- UPLOAD CARD -->
+    <section class="card">
+      <h3>Upload / Replace Signature (Admin Only)</h3>
+
+      <form id="signatureForm" enctype="multipart/form-data">
+        <div class="fields-grid">
+
+          <label>User</label>
+          <select id="userSelect" class="field-select" required></select>
+
+          <label>Department</label>
+          <input id="department" class="field-input" readonly />
+
+          <label>Signature Image (PNG / JPG)</label>
+          <input type="file" id="signatureFile" accept="image/png,image/jpeg" required />
+
+          <label>Preview</label>
+          <img id="preview" class="sig-preview"/>
+
+          <label>Remarks</label>
+          <input id="remarks" class="field-input" placeholder="Optional admin note"/>
+
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Upload / Replace</button>
+          <button type="button" class="btn" onclick="location.href='/master.html'">Back</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- LIST CARD -->
+    <section class="card">
+      <h3>Existing Signatures</h3>
+      <div id="signatureList"></div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ================= INLINE SCRIPT ================= -->
+<script>
+(function(){
+
+  const userSelect = document.getElementById('userSelect');
+  const deptInput = document.getElementById('department');
+  const fileInput = document.getElementById('signatureFile');
+  const preview = document.getElementById('preview');
+  const remarks = document.getElementById('remarks');
+  const form = document.getElementById('signatureForm');
+  const list = document.getElementById('signatureList');
+
+  // ---- Load users (admin only endpoint) ----
+  async function loadUsers(){
+    const res = await fetch('/api/admin/users', { credentials:'same-origin' });
+    if (!res.ok) {
+      alert('Admin access required');
+      location.href = '/master.html';
+      return;
+    }
+    const users = await res.json();
+    userSelect.innerHTML = '<option value="">Select user</option>';
+    users.forEach(u=>{
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = `${u.name} (${u.department})`;
+      opt.dataset.dept = u.department;
+      userSelect.appendChild(opt);
+    });
+  }
+
+  // ---- Auto-fill department ----
+  userSelect.addEventListener('change', ()=>{
+    const opt = userSelect.selectedOptions[0];
+    deptInput.value = opt ? opt.dataset.dept : '';
+  });
+
+  // ---- Preview ----
+  fileInput.addEventListener('change', ()=>{
+    const f = fileInput.files[0];
+    if (f) preview.src = URL.createObjectURL(f);
+  });
+
+  // ---- Upload ----
+  form.addEventListener('submit', async e=>{
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('user_id', userSelect.value);
+    fd.append('signature', fileInput.files[0]);
+    fd.append('remarks', remarks.value);
+
+    const res = await fetch('/api/admin/signature/upload',{
+      method:'POST',
+      body:fd,
+      credentials:'same-origin'
+    });
+
+    if(res.ok){
+      alert('Signature saved successfully');
+      form.reset();
+      preview.src='';
+      loadSignatures();
+    }else{
+      alert('Upload failed');
+    }
+  });
+
+  // ---- Existing signatures ----
+  async function loadSignatures(){
+    const res = await fetch('/api/admin/signatures', { credentials:'same-origin' });
+    if (!res.ok) return;
+    const data = await res.json();
+    list.innerHTML='';
+    data.signatures.forEach(s=>{
+      const div = document.createElement('div');
+      div.className='sig-item';
+      div.innerHTML = `
+        <img src="${s.signature_path}" height="40">
+        <div>
+          <strong>${s.username}</strong> (${s.department})<br>
+          <small>Uploaded by ${s.uploaded_by} on ${String(s.uploaded_at).slice(0,10)}</small>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  loadUsers();
+  loadSignatures();
+
+})();
+</script>
+
+</body>
+</html>

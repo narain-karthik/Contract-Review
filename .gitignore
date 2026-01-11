@@ -1,0 +1,8 @@
+.pythonlibs/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+contract_review.db
+.DS_Store
+*.log

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Email Configuration — GTN ENGINEERING (INDIA) LIMITED</title>
+
+  <style>
+    :root{
+      --bg: #f3f9fc;
+      --card: #ffffff;
+      --accent: #2ea0ff;
+      --accent-2: #69d0ff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 12px 30px rgba(18,48,80,0.07);
+      --glass: rgba(255,255,255,0.6);
+      --max-width: 1920px;
+      --container-pad: 28px;
+      --field-height: 44px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#eaf7ff 0%, #d8eef8 100%);
+      color:#12202b;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:var(--container-pad);
+      display:flex;
+      justify-content:center;
+    }
+
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+      background: transparent;
+      padding:18px;
+    }
+
+    header.top{
+      display:flex;
+      align-items:flex-start;
+      gap:18px;
+      margin-bottom:18px;
+      position:relative;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1 1 auto;
+    }
+
+    .brand .logo img{
+      height:64px;
+      width:auto;
+      display:block;
+      border-radius:8px;
+      box-shadow: 0 8px 18px rgba(12,48,88,0.06);
+      background: white;
+      padding:8px;
+    }
+
+    .titles{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .company{
+      font-weight:700;
+      font-size:16px;
+      color:#0f2a44;
+      letter-spacing:0.4px;
+    }
+    .ims{
+      font-size:12px;
+      color:var(--accent);
+      text-transform:uppercase;
+      font-weight:600;
+    }
+    .page{ font-size:13px; color:var(--muted); }
+
+    .meta{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .meta .userline{ font-size:13px; color:#1f2937; display:flex; align-items:center; gap:10px; }
+    .meta-box{
+      display:inline-block;
+      background:var(--card);
+      padding:8px 10px;
+      border-radius:8px;
+      box-shadow: 0 6px 18px rgba(12,48,88,0.04);
+      font-weight:600;
+    }
+
+    /* main cards */
+    .email-config, .test-email, .email-info, .amend {
+      margin-top:16px;
+      background:var(--card);
+      border-radius:12px;
+      padding:18px;
+      box-shadow: var(--shadow);
+      border:1px solid rgba(10,30,60,0.03);
+    }
+
+    h4{ margin:0 0 12px 0; font-size:16px; color:#0f2a44; }
+
+    .info-text{ color:var(--muted); margin:6px 0 12px 0; }
+
+    .fields-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px 18px;
+      align-items:center;
+    }
+
+    label{ font-size:13px; color:#0f1724; display:block; margin-bottom:6px; }
+    .required{ color:#ef4444; margin-left:6px; font-weight:600; }
+
+    .field-input, .field-select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(10,30,60,0.06);
+      height:var(--field-height);
+      font-size:14px;
+      background:white;
+    }
+
+    .actions{ margin-top:14px; display:flex; gap:10px; align-items:center; justify-content:flex-end; }
+    .btn{
+      border:0;
+      padding:10px 14px;
+      border-radius:8px;
+      background: #f1f5f9;
+      cursor:pointer;
+      font-weight:600;
+      color:#0f1724;
+      box-shadow: 0 6px 16px rgba(12,48,88,0.04);
+    }
+    .btn.primary{
+      background: linear-gradient(180deg,var(--accent), var(--accent-2));
+      color:white;
+      box-shadow: 0 10px 26px rgba(46,160,255,0.15);
+    }
+    .btn.ghost{ background:transparent; box-shadow:none; border:1px solid rgba(10,30,60,0.06); }
+
+    .status-message{
+      margin-top:12px;
+      font-size:13px;
+      min-height:20px;
+      color:var(--muted);
+    }
+    .status-message.show { opacity:1; transition: opacity .2s; }
+    .status-message.success{ color: #065f46; }
+    .status-message.error{ color: #b91c1c; }
+    .status-message.info{ color: #0b5ed7; }
+
+    .info-grid{ display:flex; gap:12px; margin-top:12px; flex-wrap:wrap; }
+    .info-card{ flex:1 1 300px; background: #fbfdff; border-radius:10px; padding:12px; border:1px solid rgba(10,30,60,0.03); }
+    .info-icon{ font-size:22px; margin-bottom:8px; }
+    .po-icon{ color:#0b5ed7; }
+    .form-icon{ color:#16a34a; }
+
+    .nav{ margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+
+    .amend .note{ color:var(--muted); margin-top:8px; }
+
+    /* notification small place holder for consistency */
+    .notification-bell{ position:relative; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:6px; border-radius:8px; transition:background .15s; }
+    .notification-bell:hover{ background: rgba(10,120,255,0.04); }
+    .notification-badge{ position:absolute; top:-6px; right:-6px; background:#ef4444; color:white; font-size:11px; padding:2px 6px; border-radius:999px; box-shadow:0 4px 10px rgba(14,20,40,0.12); display:none; }
+
+    /* modal small reuse if needed */
+    .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(6,18,30,0.26); z-index:80; }
+    .modal-content{ background:var(--card); border-radius:12px; padding:20px; width:min(720px, 94%); box-shadow:var(--shadow); }
+
+    /* responsive */
+    @media (max-width:1100px){
+      .fields-grid{ grid-template-columns: 1fr; }
+      body{ padding:18px; }
+      .container{ padding:12px }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+
+    <header class="top" role="banner" aria-label="Header">
+      <div class="brand">
+        <div class="logo" aria-hidden="false">
+          <img src="/attached_assets/GTN_LOGO.png" alt="GTN Logo">
+        </div>
+        <div class="titles">
+          <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+          <div class="ims">INTEGRATED MANAGEMENT SYSTEM RECORDS</div>
+          <div class="page">Email Configuration (SMTP)</div>
+        </div>
+      </div>
+
+      <div class="meta" aria-hidden="false">
+        <div class="userline">
+          Signed in as: <span id="who" style="font-weight:700; margin-left:6px;"></span>
+        </div>
+      </div>
+    </header>
+
+    <section class="email-config" aria-labelledby="smtpHeading">
+      <h4 id="smtpHeading">SMTP Server Configuration</h4>
+      <p class="info-text">Configure the SMTP server settings to enable email notifications for Purchase Order creation and form completion events.</p>
+
+      <form id="emailConfigForm" autocomplete="off" novalidate>
+        <div class="fields-grid">
+          <div>
+            <label for="smtpHost">SMTP Server Host:<span class="required">*</span></label>
+            <input id="smtpHost" class="field-input" type="text" placeholder="e.g., smtp.gmail.com" required />
+          </div>
+
+          <div>
+            <label for="smtpPort">SMTP Port:<span class="required">*</span></label>
+            <input id="smtpPort" class="field-input" type="number" placeholder="587" value="587" required />
+          </div>
+
+          <div>
+            <label for="smtpUsername">SMTP Username:<span class="required">*</span></label>
+            <input id="smtpUsername" class="field-input" type="text" placeholder="e.g., your-email@example.com" required />
+          </div>
+
+          <div>
+            <label for="smtpPassword">SMTP Password:<span class="required">*</span></label>
+            <input id="smtpPassword" class="field-input" type="password" placeholder="Leave blank to keep existing password" />
+          </div>
+
+          <div>
+            <label for="fromEmail">From Email Address:<span class="required">*</span></label>
+            <input id="fromEmail" class="field-input" type="email" placeholder="e.g., notifications@example.com" required />
+          </div>
+
+          <div>
+            <label for="useTls">Use TLS Encryption:</label>
+            <select id="useTls" class="field-select">
+              <option value="true">Yes (Recommended)</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="emailEnabled">Enable Email Notifications:</label>
+            <select id="emailEnabled" class="field-select">
+              <option value="false">Disabled</option>
+              <option value="true">Enabled</option>
+            </select>
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <small class="info-text">Passwords are stored encrypted. Leave password blank if you want to keep the previously saved password.</small>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Save Configuration</button>
+        </div>
+        <div id="emailConfigStatus" class="status-message" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section class="test-email" aria-labelledby="testHeading">
+      <h4 id="testHeading">Test Email Configuration</h4>
+      <p class="info-text">Send a test email to verify that your SMTP configuration is working correctly.</p>
+
+      <div class="fields-grid">
+        <div>
+          <label for="testEmail">Test Email Address:<span class="required">*</span></label>
+          <input id="testEmail" class="field-input" type="email" placeholder="e.g., test@example.com" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="testEmailBtn" class="btn">Send Test Email</button>
+      </div>
+      <div id="testEmailStatus" class="status-message" aria-live="polite"></div>
+    </section>
+
+    <section class="email-info" aria-labelledby="eventsHeading">
+      <h4 id="eventsHeading">Email Notification Events</h4>
+      <div class="info-grid" role="list">
+        <div class="info-card" role="listitem">
+          <div class="info-icon po-icon">📦</div>
+          <h5>Purchase Order Created</h5>
+          <p>When an admin creates a new PO, users with an email configured will receive a notification to start working on associated forms.</p>
+        </div>
+        <div class="info-card" role="listitem">
+          <div class="info-icon form-icon">✅</div>
+          <h5>Form Completion</h5>
+          <p>When a CR, PED, or LEAD form is marked completed, other users are notified via email that the form is ready for review.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="nav" role="navigation">
+      <button id="backBtn" class="btn">← Back to Dashboard</button>
+    </div>
+
+    <section class="amend" aria-hidden="false">
+      <div><strong>Note:</strong></div>
+      <div class="note">
+        Email notifications are sent only to users who have an email address stored in their profile. Make sure user email addresses are added in the User Management section.
+      </div>
+    </section>
+  </div>
+
+  <!-- Embedded JS -->
+  <script>
+  (function(){
+    const emailConfigForm = document.getElementById('emailConfigForm');
+    const testEmailBtn = document.getElementById('testEmailBtn');
+    const emailConfigStatus = document.getElementById('emailConfigStatus');
+    const testEmailStatus = document.getElementById('testEmailStatus');
+    const backBtn = document.getElementById('backBtn');
+    const who = document.getElementById('who');
+
+    function showStatus(element, message, type){
+      element.textContent = message;
+      element.className = 'status-message show ' + (type || '');
+      // auto-hide after 5s
+      setTimeout(() => {
+        element.classList.remove('show');
+      }, 5000);
+    }
+
+    async function checkAccess(){
+      try {
+        const response = await fetch('/api/session', { credentials: 'same-origin' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.loggedIn && data.user && data.user.isAdmin) {
+            who.textContent = `${data.user.name} (${data.user.department.toUpperCase()}, Admin)`;
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error('Session check failed:', err);
+      }
+      // redirect to login if not authorized
+      window.location.href = '/';
+      return false;
+    }
+
+    async function loadEmailConfig(){
+      try {
+        const response = await fetch('/api/email-config', { credentials: 'same-origin' });
+        if (response.ok) {
+          const config = await response.json();
+          document.getElementById('smtpHost').value = config.smtp_host || '';
+          document.getElementById('smtpPort').value = config.smtp_port || 587;
+          document.getElementById('smtpUsername').value = config.smtp_username || '';
+          document.getElementById('fromEmail').value = config.from_email || '';
+          document.getElementById('useTls').value = config.use_tls ? 'true' : 'false';
+          document.getElementById('emailEnabled').value = config.email_enabled ? 'true' : 'false';
+
+          if (config.has_password) {
+            document.getElementById('smtpPassword').placeholder = '••••••••• (password saved)';
+            document.getElementById('smtpPassword').value = '';
+          }
+        } else {
+          console.warn('No email config found or access denied');
+        }
+      } catch (err) {
+        console.error('Failed to load email config:', err);
+      }
+    }
+
+    emailConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const configData = {
+        smtp_host: document.getElementById('smtpHost').value.trim(),
+        smtp_port: parseInt(document.getElementById('smtpPort').value, 10) || 587,
+        smtp_username: document.getElementById('smtpUsername').value.trim(),
+        smtp_password: document.getElementById('smtpPassword').value,
+        from_email: document.getElementById('fromEmail').value.trim(),
+        use_tls: document.getElementById('useTls').value === 'true',
+        email_enabled: document.getElementById('emailEnabled').value === 'true'
+      };
+
+      if (!configData.smtp_host || !configData.smtp_username || !configData.from_email) {
+        showStatus(emailConfigStatus, '✗ Please fill required fields', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/email-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(configData)
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          showStatus(emailConfigStatus, '✓ ' + (result.message || 'Configuration saved'), 'success');
+          // clear password input for security
+          document.getElementById('smtpPassword').value = '';
+          document.getElementById('smtpPassword').placeholder = '••••••••• (password saved)';
+        } else {
+          showStatus(emailConfigStatus, '✗ ' + (result.error || 'Failed to save configuration'), 'error');
+        }
+      } catch (err) {
+        console.error('Failed to save email config:', err);
+        showStatus(emailConfigStatus, '✗ Failed to save configuration', 'error');
+      }
+    });
+
+    testEmailBtn.addEventListener('click', async () => {
+      const testEmail = document.getElementById('testEmail').value.trim();
+      if (!testEmail) {
+        showStatus(testEmailStatus, '✗ Please enter a test email address', 'error');
+        return;
+      }
+
+      showStatus(testEmailStatus, 'Sending test email...', 'info');
+
+      try {
+        const response = await fetch('/api/email-config/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ test_email: testEmail })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          showStatus(testEmailStatus, '✓ ' + (result.message || 'Test email sent'), 'success');
+        } else {
+          showStatus(testEmailStatus, '✗ ' + (result.error || 'Failed to send test email'), 'error');
+        }
+      } catch (err) {
+        console.error('Failed to send test email:', err);
+        showStatus(testEmailStatus, '✗ Failed to send test email', 'error');
+      }
+    });
+
+    backBtn.addEventListener('click', () => {
+      window.location.href = 'master.html';
+    });
+
+    // Initialize: check admin access then load config
+    checkAccess().then(hasAccess => {
+      if (hasAccess) loadEmailConfig();
+    });
+
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin PO Progress Dashboard — GTN ENGINEERING (INDIA) LIMITED</title>
+
+  <style>
+    :root{
+      --card: #ffffff;
+      --accent: #2563eb;
+      --accent-2: #38bdf8;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 14px 35px rgba(15,23,42,0.08);
+      --max-width: 1920px;
+
+      --ok-bg: #dcfce7;
+      --ok-text: #15803d;
+
+      --warn-bg: #ffedd5;
+      --warn-text: #c2410c;
+
+      --bad-bg: #fee2e2;
+      --bad-text: #b91c1c;
+
+      --chip-bg: #f3f4f6;
+      --chip-text: #111827;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, #dbeafe 0, transparent 55%),
+        radial-gradient(circle at bottom right, #e0f2fe 0, transparent 55%),
+        linear-gradient(180deg,#eff6ff 0%, #e0f2fe 45%, #e5e7eb 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:24px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+
+    .page{
+      width:100%;
+      max-width:var(--max-width);
+      background:rgba(255,255,255,0.65);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(32px);
+      -webkit-backdrop-filter:blur(32px);
+      padding:18px 22px 22px 22px;
+      border:1px solid rgba(148,163,184,0.25);
+    }
+
+    header.top{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin-bottom:14px;
+      justify-content:space-between;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex:1 1 auto;
+    }
+
+    .brand-logo-wrap{
+      width:72px;
+      height:72px;
+      border-radius:18px;
+      background:radial-gradient(circle at 0 0,#eff6ff 0, #dbeafe 55%, #bfdbfe 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 14px 32px rgba(30,64,175,0.28);
+      border:1px solid rgba(59,130,246,0.55);
+    }
+
+    .brand-logo{
+      max-width:60px;
+      max-height:60px;
+      border-radius:12px;
+      background:white;
+      padding:6px;
+      object-fit:contain;
+    }
+
+    .titles{display:flex;flex-direction:column;gap:4px;}
+    .company{
+      font-size:18px;
+      font-weight:700;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+    }
+    .ims{
+      font-size:11px;
+      color:var(--accent);
+      text-transform:uppercase;
+      font-weight:700;
+      letter-spacing:0.16em;
+    }
+    .page-title{font-size:13px;color:#4b5563;}
+
+    .meta{display:flex;align-items:center;gap:10px;}
+    .user-badge{
+      font-size:13px;
+      padding:6px 12px;
+      border-radius:999px;
+      background:rgba(16,185,129,0.08);
+      color:#047857;
+      border:1px solid rgba(16,185,129,0.35);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      box-shadow:0 3px 10px rgba(16,185,129,0.18);
+    }
+    .user-dot{
+      width:8px;height:8px;border-radius:999px;background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,0.35);
+    }
+
+    .btn{
+      border:0;
+      padding:8px 14px;
+      border-radius:999px;
+      background:#f1f5f9;
+      cursor:pointer;
+      font-weight:600;
+      color:#0f172a;
+      box-shadow:0 4px 12px rgba(15,23,42,0.08);
+      font-size:13px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition:background .15s, transform .08s, box-shadow .15s;
+    }
+    .btn:hover{ background:#e5e7eb; transform:translateY(-1px); }
+    .btn:active{ transform:translateY(0); }
+    .btn.primary{
+      background: linear-gradient(135deg,var(--accent), var(--accent-2));
+      color:white;
+      box-shadow:0 8px 24px rgba(37,99,235,0.35);
+    }
+    .btn.primary:hover{ background: linear-gradient(135deg,#1d4ed8, #0ea5e9); }
+
+    .btn-mini{
+      border-radius:999px;
+      padding:3px 8px;
+      font-size:11px;
+      border:0;
+      cursor:pointer;
+      background:#eef2ff;
+      color:#4338ca;
+      box-shadow:0 2px 6px rgba(15,23,42,0.16);
+      white-space:nowrap;
+    }
+    .btn-mini:hover{ background:#e0e7ff; }
+
+    /* Summary bar */
+    .summary-bar{
+      display:grid;
+      grid-template-columns: repeat(4,minmax(0,1fr));
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .summary-card{
+      background:var(--card);
+      border-radius:14px;
+      padding:10px 12px;
+      border:1px solid rgba(148,163,184,0.35);
+      box-shadow:0 10px 26px rgba(15,23,42,0.08);
+    }
+    .summary-label{
+      font-size:11px;
+      text-transform:uppercase;
+      color:#6b7280;
+      letter-spacing:0.08em;
+    }
+    .summary-value{
+      font-size:18px;
+      font-weight:700;
+      margin-top:4px;
+    }
+    .summary-sub{
+      display:flex;
+      justify-content:space-between;
+      color:#6b7280;
+      font-size:11px;
+      margin-top:6px;
+    }
+
+    /* Layout */
+    .layout{
+      display:grid;
+      grid-template-columns: 360px minmax(0,1fr);
+      gap:16px;
+      align-items:flex-start;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:16px;
+      padding:14px 14px 16px 14px;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(148,163,184,0.35);
+    }
+
+    .card-title{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .card-title h3{
+      margin:0;
+      font-size:14px;
+      color:#0f172a;
+    }
+
+    .hint{
+      margin:3px 0 0 0;
+      font-size:11px;
+      color:#9ca3af;
+      line-height:1.4;
+    }
+
+    .live-pill{
+      padding:3px 9px;
+      border-radius:999px;
+      font-size:11px;
+      background:#eff6ff;
+      color:#2563eb;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .live-dot{ width:8px;height:8px;border-radius:999px;background:#22c55e; }
+
+    /* Date list */
+    .date-list{
+      max-height:600px;
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,#f9fafb 0,#ffffff 40%,#f9fafb 100%);
+      padding:6px;
+      scrollbar-width:thin;
+      scrollbar-color:#9ca3af #e5e7eb;
+    }
+    .date-item{
+      padding:9px 10px;
+      border-radius:12px;
+      border:1px solid transparent;
+      cursor:pointer;
+      background:#fff;
+      margin-bottom:8px;
+      transition:transform .06s, border-color .12s, box-shadow .12s;
+    }
+    .date-item:hover{
+      transform:translateY(-1px);
+      border-color:#dbeafe;
+      box-shadow:0 10px 20px rgba(15,23,42,0.06);
+    }
+    .date-item.active{
+      border-color:#2563eb;
+      background:#eff6ff;
+    }
+    .date-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      font-weight:700;
+      color:#111827;
+      font-size:12px;
+      margin-bottom:6px;
+    }
+    .date-chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      font-size:11px;
+      color:#4b5563;
+    }
+    .chip{
+      padding:2px 8px;
+      border-radius:999px;
+      background:#f3f4f6;
+      color:#111827;
+      border:1px solid rgba(17,24,39,0.06);
+    }
+    .chip.ok{ background:var(--ok-bg); color:var(--ok-text); }
+    .chip.warn{ background:var(--warn-bg); color:var(--warn-text); }
+
+    /* Right toolbar */
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .field-select{
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid #d1d5db;
+      background:white;
+      font-size:12px;
+      color:#374151;
+      outline:none;
+      min-width:120px;
+    }
+
+    .status-message{
+      margin-left:auto;
+      font-size:11px;
+      color:#6b7280;
+    }
+
+    /* PO list */
+    .po-list{
+      max-height:600px;
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,#f9fafb 0,#ffffff 40%,#f9fafb 100%);
+      padding:8px;
+      scrollbar-width:thin;
+      scrollbar-color:#9ca3af #e5e7eb;
+    }
+
+    .po-card{
+      background:#ffffff;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:10px 12px;
+      margin-bottom:10px;
+      box-shadow:0 10px 22px rgba(15,23,42,0.06);
+    }
+
+    .po-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .po-title{
+      font-weight:800;
+      font-size:13px;
+      color:#111827;
+      line-height:1.2;
+    }
+    .po-sub{
+      margin-top:3px;
+      font-size:11px;
+      color:#6b7280;
+    }
+
+    .badge{
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+      border:1px solid rgba(17,24,39,0.06);
+    }
+    .badge.ok{ background:var(--ok-bg); color:var(--ok-text); }
+    .badge.warn{ background:var(--warn-bg); color:var(--warn-text); }
+    .badge.bad{ background:var(--bad-bg); color:var(--bad-text); }
+
+    .progress-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+    .progress-row{
+      display:grid;
+      grid-template-columns: 50px 1fr 44px;
+      gap:8px;
+      align-items:center;
+      font-size:11px;
+      color:#374151;
+    }
+    .bar{
+      height:10px;
+      background:#f3f4f6;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid rgba(17,24,39,0.06);
+    }
+    .bar > span{
+      display:block;
+      height:100%;
+      width:0%;
+      background:linear-gradient(135deg,var(--accent), var(--accent-2));
+      border-radius:999px;
+    }
+
+    details.po-expand{
+      margin-top:10px;
+      border-top:1px dashed #e5e7eb;
+      padding-top:10px;
+    }
+    details.po-expand summary{
+      list-style:none;
+      cursor:pointer;
+      font-weight:700;
+      color:#1f2937;
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+    }
+    details.po-expand summary::-webkit-details-marker{ display:none; }
+    .chev{
+      width:10px;height:10px;border-right:2px solid #64748b;border-bottom:2px solid #64748b;
+      transform:rotate(-45deg);
+      transition:transform .12s;
+      margin-top:-1px;
+    }
+    details[open] .chev{ transform:rotate(45deg); }
+
+    .form-block{
+      margin-top:10px;
+      border:1px dashed #e5e7eb;
+      border-radius:12px;
+      padding:9px 10px;
+      background:#fff;
+    }
+    .form-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:6px;
+    }
+    .form-name{
+      font-weight:800;
+      color:#111827;
+      font-size:12px;
+    }
+
+    .small-metrics{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:6px 0 2px 0;
+      font-size:11px;
+      color:#4b5563;
+    }
+    .metric-pill{
+      padding:3px 8px;
+      border-radius:999px;
+      background:#f3f4f6;
+      border:1px solid rgba(17,24,39,0.06);
+    }
+    .metric-pill.bad{
+      background:var(--bad-bg);
+      color:var(--bad-text);
+      border-color:rgba(185,28,28,0.18);
+    }
+    .metric-pill.ok{
+      background:var(--ok-bg);
+      color:var(--ok-text);
+      border-color:rgba(21,128,61,0.18);
+    }
+
+    .dept-section{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-top:8px;
+    }
+    .dept-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+    }
+    .dept-chip{
+      padding:3px 8px;
+      border-radius:999px;
+      background:var(--chip-bg);
+      color:var(--chip-text);
+      font-size:11px;
+      border:1px solid rgba(17,24,39,0.06);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .dept-chip.pending{
+      background:var(--bad-bg);
+      color:var(--bad-text);
+      border-color:rgba(185,28,28,0.2);
+    }
+    .dept-chip.done{
+      background:#e0f2fe;
+      color:#0369a1;
+      border-color:rgba(3,105,161,0.2);
+    }
+
+    .empty{
+      padding:12px;
+      text-align:center;
+      color:#6b7280;
+      font-size:12px;
+    }
+
+    @media (max-width:1100px){
+      .layout{ grid-template-columns:minmax(0,1fr); }
+      .summary-bar{ grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:700px){
+      body{ padding:12px; }
+      .page{ padding:14px 12px 16px 12px; }
+      header.top{ flex-direction:column; align-items:flex-start; gap:10px; }
+      .meta{ align-self:flex-end; }
+      .summary-bar{ grid-template-columns: minmax(0,1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="/attached_assets/GTN_LOGO_1762400078631.png" alt="GTN Logo" class="brand-logo" onerror="this.style.display='none'">
+        </div>
+        <div class="titles">
+          <div class="company">GTN ENGINEERING (INDIA) LIMITED</div>
+          <div class="ims">CONTRACT REVIEW</div>
+          <div class="page-title">PO Progress &amp; Department Reminder Dashboard</div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <span id="who" class="user-badge">
+          <span class="user-dot"></span>
+          <span>Loading...</span>
+        </span>
+        <button id="backBtn" class="btn" title="Back to Master Dashboard">← Back to Master</button>
+      </div>
+    </header>
+
+    <!-- Summary -->
+    <section class="summary-bar" aria-label="Overall summary">
+      <div class="summary-card">
+        <div class="summary-label">Total POs</div>
+        <div class="summary-value" id="sumPos">–</div>
+        <div class="summary-sub">
+          <span>Visible in current filters</span>
+          <span id="sumDateTag">All Dates</span>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Average Overall %</div>
+        <div class="summary-value" id="sumOverallPct">–</div>
+        <div class="summary-sub">
+          <span>Dept-weighted</span>
+          <span id="sumOverallMeta">–</span>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Pending Departments</div>
+        <div class="summary-value" id="sumPendingDepts">–</div>
+        <div class="summary-sub">
+          <span>Across CR &amp; PED</span>
+          <span id="sumPendingForms">–</span>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Last Refreshed</div>
+        <div class="summary-value" id="sumRefreshed">–</div>
+        <div class="summary-sub">
+          <span>Auto refresh</span>
+          <span>Every 60s</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <!-- Left -->
+      <section class="card" aria-label="By date overview">
+        <div class="card-title">
+          <div>
+            <h3>Activity by Date</h3>
+            <p class="hint">Click a date to focus the PO analysis to that day’s activity (form saved or completed).</p>
+          </div>
+          <span class="live-pill"><span class="live-dot"></span>Live</span>
+        </div>
+        <div id="dateList" class="date-list">
+          <div class="empty">Loading dates…</div>
+        </div>
+      </section>
+
+      <!-- Right -->
+      <section class="card" aria-label="PO analysis">
+        <div class="card-title">
+          <div>
+            <h3>PO Analysis (CR / PED / LEAD %)</h3>
+            <p class="hint">Expand a PO to see field pending counts (cells) + pending departments + reminders.</p>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <select id="statusFilter" class="field-select" aria-label="Status filter">
+            <option value="all">All POs</option>
+            <option value="pending">Only Pending POs</option>
+          </select>
+
+          <select id="formTypeFilter" class="field-select" aria-label="Form type filter">
+            <option value="ALL">All Types</option>
+            <option value="CR">CR</option>
+            <option value="PED">PED</option>
+            <option value="LEAD">LEAD</option>
+          </select>
+
+          <button id="refreshBtn" class="btn" title="Refresh now">↻ Refresh</button>
+          <button id="remindAllBtn" class="btn primary" title="Send reminder for all pending items on selected date">Remind All Pending</button>
+
+          <span id="statusMessage" class="status-message"></span>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12px;color:#4b5563;">
+          <span>Selected Date: <strong id="selectedDateLabel">All</strong></span>
+        </div>
+
+        <div id="poList" class="po-list" aria-live="polite">
+          <div class="empty">Loading PO analysis…</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const who = document.getElementById('who');
+    const backBtn = document.getElementById('backBtn');
+
+    const dateList = document.getElementById('dateList');
+    const poList = document.getElementById('poList');
+
+    const statusFilter = document.getElementById('statusFilter');
+    const formTypeFilter = document.getElementById('formTypeFilter');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const remindAllBtn = document.getElementById('remindAllBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const selectedDateLabel = document.getElementById('selectedDateLabel');
+
+    const sumPos = document.getElementById('sumPos');
+    const sumDateTag = document.getElementById('sumDateTag');
+    const sumOverallPct = document.getElementById('sumOverallPct');
+    const sumOverallMeta = document.getElementById('sumOverallMeta');
+    const sumPendingDepts = document.getElementById('sumPendingDepts');
+    const sumPendingForms = document.getElementById('sumPendingForms');
+    const sumRefreshed = document.getElementById('sumRefreshed');
+
+    let selectedDate = '';
+    let allForms = [];
+    let dateSummary = [];
+
+    function escapeHtml(text){
+      const d = document.createElement('div');
+      d.textContent = text || '';
+      return d.innerHTML;
+    }
+
+    function fmtTime(d){
+      const h = String(d.getHours()).padStart(2,'0');
+      const m = String(d.getMinutes()).padStart(2,'0');
+      return `${h}:${m}`;
+    }
+
+    async function ensureAdmin(){
+      try{
+        const res = await fetch('/api/session', { credentials:'same-origin' });
+        const data = await res.json();
+        if (!res.ok || !data.loggedIn || !data.user || !data.user.isAdmin){
+          window.location.href = '/';
+          return false;
+        }
+        who.innerHTML = `<span class="user-dot"></span><span>${escapeHtml(data.user.name)} (${escapeHtml(data.user.department || '').toUpperCase()}, Admin)</span>`;
+        return true;
+      }catch(e){
+        window.location.href = '/';
+        return false;
+      }
+    }
+
+    function buildQueryString(extra){
+      const qs = [];
+      if (extra.date) qs.push('date=' + encodeURIComponent(extra.date));
+      if (extra.onlyPending) qs.push('onlyPending=true');
+      if (extra.formType) qs.push('formType=' + encodeURIComponent(extra.formType));
+      return qs.length ? ('?' + qs.join('&')) : '';
+    }
+
+    function calcDeptProgress(form){
+      if (!form) return { pct: 0, done: 0, total: 0, status: 'not_started' };
+      const depts = Array.isArray(form.departments) ? form.departments : [];
+      const total = depts.length;
+      const done = depts.filter(d => String(d.status || '').toLowerCase() === 'completed').length;
+      const pct = total > 0 ? Math.round((done * 100) / total) : 0;
+      return { pct, done, total, status: (form.overallStatus || 'in_progress') };
+    }
+
+    function calcLeadProgress(form){
+      if (!form) return { pct: 0, done: 0, total: 1, status: 'not_started' };
+      const complete = (form.overallStatus || '') === 'complete';
+      return { pct: complete ? 100 : 0, done: complete ? 1 : 0, total: 1, status: (form.overallStatus || 'in_progress') };
+    }
+
+    function weightedOverall(crProg, pedProg, leadProg){
+      const totalUnits = (crProg.total || 0) + (pedProg.total || 0) + 1;
+      const doneUnits = (crProg.done || 0) + (pedProg.done || 0) + (leadProg.done || 0);
+      const pct = totalUnits > 0 ? Math.round((doneUnits * 100) / totalUnits) : 0;
+      return { pct, doneUnits, totalUnits };
+    }
+
+    function badgeForPct(pct){
+      if (pct >= 100) return { cls: 'badge ok', text: 'Completed' };
+      if (pct >= 50) return { cls: 'badge warn', text: 'In Progress' };
+      return { cls: 'badge bad', text: 'Pending' };
+    }
+
+    function deptNamePretty(dept){
+      return String(dept || '').replace(/-/g,' ').toUpperCase();
+    }
+
+    function groupFormsByPo(forms){
+      const byPo = {};
+      forms.forEach(f => {
+        const key = `${f.customer || ''}|${f.po || ''}|${f.cr || ''}`;
+        if (!byPo[key]){
+          byPo[key] = {
+            key,
+            customer: f.customer || '',
+            po: f.po || '',
+            cr: f.cr || '',
+            poKey: f.poKey || '',
+            formsByType: {}
+          };
+        }
+        byPo[key].formsByType[f.formType] = f;
+      });
+      return Object.values(byPo);
+    }
+
+    function computeAndRender(){
+      let forms = allForms || [];
+      if (selectedDate){
+        forms = forms.filter(f => (f.date || '').slice(0,10) === selectedDate);
+      }
+
+      const pos = groupFormsByPo(forms);
+
+      const onlyPending = statusFilter.value === 'pending';
+      let filteredPos = pos;
+
+      const ft = formTypeFilter.value;
+      if (ft !== 'ALL'){
+        filteredPos = filteredPos.filter(p => !!p.formsByType[ft]);
+      }
+
+      const withProgress = filteredPos.map(p => {
+        const crForm = p.formsByType.CR || null;
+        const pedForm = p.formsByType.PED || null;
+        const leadForm = p.formsByType.LEAD || null;
+
+        const crProg = calcDeptProgress(crForm);
+        const pedProg = calcDeptProgress(pedForm);
+        const leadProg = calcLeadProgress(leadForm);
+        const overall = weightedOverall(crProg, pedProg, leadProg);
+
+        return { ...p, crForm, pedForm, leadForm, crProg, pedProg, leadProg, overall };
+      });
+
+      let finalPos = withProgress;
+      if (onlyPending){
+        finalPos = finalPos.filter(p => p.overall.pct < 100);
+      }
+
+      renderPoList(finalPos);
+      renderSummary(finalPos);
+    }
+
+    function renderSummary(posList){
+      sumPos.textContent = String(posList.length);
+      sumDateTag.textContent = selectedDate ? selectedDate : 'All Dates';
+
+      if (!posList.length){
+        sumOverallPct.textContent = '–';
+        sumOverallMeta.textContent = '–';
+        sumPendingDepts.textContent = '–';
+        sumPendingForms.textContent = '–';
+        sumRefreshed.textContent = fmtTime(new Date());
+        return;
+      }
+
+      const avg = Math.round(posList.reduce((acc,p) => acc + p.overall.pct, 0) / posList.length);
+      sumOverallPct.textContent = avg + '%';
+      sumOverallMeta.textContent = 'Avg. across POs';
+
+      let pendingDepts = 0;
+      let pendingForms = 0;
+
+      posList.forEach(p => {
+        const crDepts = Array.isArray(p.crForm?.departments) ? p.crForm.departments : [];
+        const pedDepts = Array.isArray(p.pedForm?.departments) ? p.pedForm.departments : [];
+
+        pendingDepts += crDepts.filter(d => String(d.status || '').toLowerCase() !== 'completed').length;
+        pendingDepts += pedDepts.filter(d => String(d.status || '').toLowerCase() !== 'completed').length;
+
+        if (p.crProg.pct < 100) pendingForms++;
+        if (p.pedProg.pct < 100) pendingForms++;
+        if (p.leadProg.pct < 100) pendingForms++;
+      });
+
+      sumPendingDepts.textContent = String(pendingDepts);
+      sumPendingForms.textContent = `${pendingForms} forms pending`;
+      sumRefreshed.textContent = fmtTime(new Date());
+    }
+
+    function renderDateSummary(){
+      if (!dateSummary.length){
+        dateList.innerHTML = '<div class="empty">No activity yet.</div>';
+        return;
+      }
+
+      dateList.innerHTML = dateSummary.map(d => {
+        const stats = d.stats || {};
+        const total = stats.total || 0;
+        const pending = stats.pending || 0;
+        const completed = stats.completed || 0;
+        const active = (d.date === selectedDate) ? 'date-item active' : 'date-item';
+        return `
+          <div class="${active}" data-date="${escapeHtml(d.date)}">
+            <div class="date-row">
+              <span>${escapeHtml(d.date)}</span>
+              <span>Total: ${total}</span>
+            </div>
+            <div class="date-chips">
+              <span class="chip warn">Pending: ${pending}</span>
+              <span class="chip ok">Completed: ${completed}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      dateList.querySelectorAll('.date-item').forEach(el => {
+        el.addEventListener('click', () => {
+          selectedDate = el.getAttribute('data-date');
+          selectedDateLabel.textContent = selectedDate;
+          statusMessage.textContent = '';
+          computeAndRender();
+          renderDateSummary();
+        });
+      });
+    }
+
+    function renderPoList(posList){
+      if (!posList.length){
+        poList.innerHTML = '<div class="empty">No POs match the current filters.</div>';
+        return;
+      }
+
+      poList.innerHTML = posList.map(p => {
+        const overallBadge = badgeForPct(p.overall.pct);
+        const poTitle = `${p.customer} — ${p.po} (CR: ${p.cr})`;
+
+        return `
+          <div class="po-card">
+            <div class="po-top">
+              <div>
+                <div class="po-title">${escapeHtml(poTitle)}</div>
+                <div class="po-sub">PO Key: ${escapeHtml(p.poKey || '')}</div>
+              </div>
+              <span class="${overallBadge.cls}">${overallBadge.text} • ${p.overall.pct}%</span>
+            </div>
+
+            <div class="progress-grid">
+              <div class="progress-row">
+                <span><strong>CR</strong></span>
+                <div class="bar"><span style="width:${p.crProg.pct}%"></span></div>
+                <span>${p.crProg.pct}%</span>
+              </div>
+              <div class="progress-row">
+                <span><strong>PED</strong></span>
+                <div class="bar"><span style="width:${p.pedProg.pct}%"></span></div>
+                <span>${p.pedProg.pct}%</span>
+              </div>
+              <div class="progress-row">
+                <span><strong>LEAD</strong></span>
+                <div class="bar"><span style="width:${p.leadProg.pct}%"></span></div>
+                <span>${p.leadProg.pct}%</span>
+              </div>
+            </div>
+
+            <details class="po-expand">
+              <summary>
+                <span class="chev"></span>
+                <span>Expand: pending fields + pending departments + reminder</span>
+              </summary>
+
+              ${renderFormBlock('CR', p.crForm, p.crProg)}
+              ${renderFormBlock('PED', p.pedForm, p.pedProg)}
+              ${renderFormBlock('LEAD', p.leadForm, p.leadProg)}
+            </details>
+          </div>
+        `;
+      }).join('');
+
+      poList.querySelectorAll('button[data-remind="1"]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const formType = btn.getAttribute('data-form-type');
+          const formId = Number(btn.getAttribute('data-form-id'));
+          const dept = btn.getAttribute('data-dept');
+          await triggerReminder(formType, formId, dept || null);
+        });
+      });
+    }
+
+    function renderFieldProgressRow(form){
+      const fp = form && form.fieldProgress ? form.fieldProgress : null;
+      if (!fp) return `<span class="metric-pill">Fields: –</span>`;
+
+      const pendingCls = fp.pending > 0 ? 'metric-pill bad' : 'metric-pill ok';
+      return `
+        <span class="metric-pill">Fields Filled: <strong>${fp.filled}</strong> / ${fp.total} (${fp.pct}%)</span>
+        <span class="${pendingCls}">Pending Fields: <strong>${fp.pending}</strong></span>
+      `;
+    }
+
+    function renderFormBlock(formType, form, prog){
+      if (!form){
+        return `
+          <div class="form-block">
+            <div class="form-head">
+              <div class="form-name">${formType} Form</div>
+              <span class="badge bad">Not started</span>
+            </div>
+            <div style="font-size:11px;color:#6b7280;">No ${formType} form saved yet for this PO.</div>
+          </div>
+        `;
+      }
+
+      const badge = badgeForPct(prog.pct);
+      const overall = (form.overallStatus || 'in_progress') === 'complete' ? 'Completed' : 'In Progress';
+
+      if (formType === 'LEAD'){
+        return `
+          <div class="form-block">
+            <div class="form-head">
+              <div class="form-name">LEAD Form</div>
+              <span class="${badge.cls}">${overall} • ${prog.pct}%</span>
+            </div>
+
+            <div class="small-metrics">
+              ${renderFieldProgressRow(form)}
+            </div>
+
+            <div style="font-size:11px;color:#6b7280;margin:6px 0;">
+              LEAD has no department split. Reminder goes to all users.
+            </div>
+            <button class="btn-mini" data-remind="1" data-form-type="LEAD" data-form-id="${form.formId}">Send Reminder</button>
+          </div>
+        `;
+      }
+
+      const depts = Array.isArray(form.departments) ? form.departments : [];
+      const pending = depts.filter(d => String(d.status || '').toLowerCase() !== 'completed');
+      const done = depts.filter(d => String(d.status || '').toLowerCase() === 'completed');
+
+      const doneHtml = done.length
+        ? done.map(d => `<span class="dept-chip done">${escapeHtml(deptNamePretty(d.department))}</span>`).join('')
+        : '<span style="font-size:11px;color:#6b7280;">None</span>';
+
+      const pendingHtml = pending.length
+        ? pending.map(d => `
+            <span class="dept-chip pending">
+              ${escapeHtml(deptNamePretty(d.department))}
+              <button class="btn-mini" data-remind="1"
+                      data-form-type="${formType}"
+                      data-form-id="${form.formId}"
+                      data-dept="${escapeHtml(d.department)}">Remind</button>
+            </span>
+          `).join('')
+        : '<span style="font-size:11px;color:#16a34a;">No pending departments</span>';
+
+      return `
+        <div class="form-block">
+          <div class="form-head">
+            <div class="form-name">${formType} Form</div>
+            <span class="${badge.cls}">${overall} • ${prog.pct}%</span>
+          </div>
+
+          <div class="small-metrics">
+            ${renderFieldProgressRow(form)}
+          </div>
+
+          <div class="dept-section">
+            <div style="font-size:11px;color:#6b7280;">
+              Completed Departments (${done.length}/${depts.length})
+            </div>
+            <div class="dept-row">${doneHtml}</div>
+
+            <div style="font-size:11px;color:#6b7280;margin-top:6px;">
+              Pending Departments (${pending.length}/${depts.length})
+            </div>
+            <div class="dept-row">${pendingHtml}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function triggerReminder(formType, formId, department){
+      let msg = '';
+      if (department) msg = `Send reminder to ${department.toUpperCase()} for ${formType} form?`;
+      else msg = `Send reminder for ${formType} form (all relevant users)?`;
+      if (!confirm(msg)) return;
+
+      try{
+        const body = { formType, formId };
+        if (department) body.department = department;
+
+        const res = await fetch('/api/admin/forms/remind', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'same-origin',
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json().catch(()=> ({}));
+        if (res.ok && data.success){
+          alert('Reminder sent.');
+        } else {
+          alert('Failed: ' + (data.error || 'Unknown error'));
+        }
+      }catch(e){
+        alert('Failed to send reminder.');
+      }
+    }
+
+    async function remindAllPending(){
+      if (!selectedDate){
+        alert('Please select a date first (left panel).');
+        return;
+      }
+
+      let forms = allForms || [];
+      forms = forms.filter(f => (f.date || '').slice(0,10) === selectedDate);
+
+      const pendingTargets = [];
+      forms.forEach(f => {
+        if (f.formType === 'LEAD'){
+          if ((f.overallStatus || '') !== 'complete'){
+            pendingTargets.push({ formType:'LEAD', formId:Number(f.formId) });
+          }
+        } else {
+          const depts = Array.isArray(f.departments) ? f.departments : [];
+          depts.filter(d => String(d.status || '').toLowerCase() !== 'completed')
+               .forEach(d => pendingTargets.push({
+                 formType: f.formType,
+                 formId: Number(f.formId),
+                 department: d.department
+               }));
+        }
+      });
+
+      if (!pendingTargets.length){
+        alert('No pending departments/forms for ' + selectedDate);
+        return;
+      }
+
+      if (!confirm(`Send reminders for ${pendingTargets.length} pending items on ${selectedDate}?`)) return;
+
+      statusMessage.textContent = 'Sending reminders...';
+      for (let i=0;i<pendingTargets.length;i++){
+        const t = pendingTargets[i];
+        try{
+          const body = { formType: t.formType, formId: t.formId };
+          if (t.department) body.department = t.department;
+          await fetch('/api/admin/forms/remind', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            credentials:'same-origin',
+            body: JSON.stringify(body)
+          });
+        }catch(e){}
+        statusMessage.textContent = `Sending reminders... (${i+1}/${pendingTargets.length})`;
+      }
+      statusMessage.textContent = 'Reminders sent.';
+      alert('Reminders processed. Refreshing view...');
+      await loadStatus();
+    }
+
+    async function loadStatus(){
+      statusMessage.textContent = '';
+      poList.innerHTML = '<div class="empty">Loading PO analysis…</div>';
+      dateList.innerHTML = '<div class="empty">Loading dates…</div>';
+
+      const onlyPending = (statusFilter.value === 'pending');
+      const ft = (formTypeFilter.value !== 'ALL') ? formTypeFilter.value : '';
+
+      const qs = buildQueryString({
+        date: selectedDate || undefined,
+        onlyPending: onlyPending || undefined,
+        formType: ft || undefined
+      });
+
+      try{
+        const res = await fetch('/api/admin/forms/status-by-date' + qs, { credentials:'same-origin' });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok){
+          const err = data.error || 'Error loading status.';
+          poList.innerHTML = `<div class="empty" style="color:#b91c1c;">${escapeHtml(err)}</div>`;
+          dateList.innerHTML = `<div class="empty" style="color:#b91c1c;">${escapeHtml(err)}</div>`;
+          return;
+        }
+
+        allForms = data.forms || [];
+        dateSummary = data.dates || [];
+        renderDateSummary();
+
+        selectedDateLabel.textContent = selectedDate ? selectedDate : 'All';
+        sumRefreshed.textContent = fmtTime(new Date());
+
+        computeAndRender();
+      }catch(e){
+        poList.innerHTML = '<div class="empty" style="color:#b91c1c;">Error loading status.</div>';
+        dateList.innerHTML = '<div class="empty" style="color:#b91c1c;">Error loading dates.</div>';
+      }
+    }
+
+    backBtn.addEventListener('click', () => { window.location.href = 'master.html'; });
+    refreshBtn.addEventListener('click', loadStatus);
+    statusFilter.addEventListener('change', loadStatus);
+    formTypeFilter.addEventListener('change', loadStatus);
+    remindAllBtn.addEventListener('click', remindAllPending);
+
+    (async function init(){
+      const ok = await ensureAdmin();
+      if (!ok) return;
+      selectedDate = '';
+      selectedDateLabel.textContent = 'All';
+      sumRefreshed.textContent = fmtTime(new Date());
+      await loadStatus();
+      statusMessage.textContent = 'Auto-refresh every 60 seconds.';
+      setInterval(loadStatus, 60000);
+    })();
+  })();
+  </script>
+</body>
+</html>
